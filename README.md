@@ -15,7 +15,9 @@ For my personal use, this project serves as a practical application of data engi
 
 # Tech Stack
 - **Data Collection**: Python
-- **Data Storage and Analysis**: Snowflake
+- **Data Storage**: Snowflake 
+- **Data Analysis**: Snowflake + Jupyter Notebooks
 - **Data Modeling and Transformation**: DBT (Data Build Tool)
 - **Version Control**: GitHub
 - **Scheduling**: Airflow (optional for automating data collection and transformation)
+- **LLMs**: Cursor, Claude Code, Copilot

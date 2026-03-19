@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(pip show:*)",
-      "Bash(C:/Users/gabri/anaconda3/envs/snowflake-kalshi/python.exe -c \"import utils; print\\(utils.__file__\\)\")"
-    ]
-  }
-}

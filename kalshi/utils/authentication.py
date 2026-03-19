@@ -27,7 +27,7 @@ def load_private_key_from_file() -> rsa.RSAPrivateKey:
     return private_key
 
 
-def load_key_id_from_file() -> str:
+def load_api_key_id() -> str:
     key_id = os.getenv("KALSHI_API_KEY_ID")
     if key_id is None:
         raise ValueError("KALSHI_API_KEY_ID environment variable not set")

@@ -1,1 +1,1 @@
-from utils.authentication import load_private_key_from_file, sign_pss_text, load_key_id_from_file
+from kalshi.utils.authentication import load_private_key_from_file, sign_pss_text, load_api_key_id
