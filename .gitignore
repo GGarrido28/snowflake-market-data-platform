@@ -1,0 +1,9 @@
+# .egg
+*.egg
+*.egg-info
+
+# .key
+*.key
+
+# .env
+.env

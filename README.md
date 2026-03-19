@@ -1,0 +1,21 @@
+# What is this project?
+A Snowflake-based data platform that ingests, models, and analyzes prediction market data (Kalshi) to evaluate market efficiency, probability calibration, and liquidity dynamics.
+
+# Why this project?
+This project aims to provide insights into the efficiency of prediction markets, which are often used for forecasting events. By analyzing Kalshi's data, we can assess how well the market prices reflect actual probabilities, identify potential inefficiencies, and understand liquidity patterns. This can be valuable for traders, researchers, and anyone interested in the dynamics of prediction markets.
+
+For my personal use, this project serves as a practical application of data engineering and analytics skills, allowing me to work with real-world data and derive meaningful insights. It also provides an opportunity to explore the intersection of finance, economics, sports, and data science. I decided to use Snowflake because of its scalability, performance, and ease of use for data warehousing and analytics. Snowflake's ability to handle large volumes of data and its support for SQL make it an ideal choice for this project. 
+
+# Project Structure
+- `kalshi`: Contains the main code for data scraping and collection from Kalshi API.
+- `snowflake`: Contains the code for data modeling, transformation, and analysis in Snowflake.
+- `data_collection`: DBT scripts for data collection and transformation.
+- `data_analysis`: DBT scripts for data analysis and insights generation.
+- `README.md`: This file, providing an overview of the project and its purpose.
+
+# Tech Stack
+- **Data Collection**: Python
+- **Data Storage and Analysis**: Snowflake
+- **Data Modeling and Transformation**: DBT (Data Build Tool)
+- **Version Control**: GitHub
+- **Scheduling**: Airflow (optional for automating data collection and transformation)
