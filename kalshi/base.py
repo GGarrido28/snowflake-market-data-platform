@@ -86,16 +86,12 @@ class KalshiBase:
             return requests.post(url, headers=headers, json=params)
         raise ValueError("Unsupported HTTP method")
     
-    def make_request(self, method: str, path: str, limit=100, cursor=None, params=None, status: str=None, mve_filter: str=None) -> requests.Response:
+    def make_request(self, method: str, path: str, limit=100, cursor=None, params=None, **kwargs) -> requests.Response:
         '''Helper method to make authenticated requests to the Kalshi API. Handles signing and error checking.'''
         method = method.upper()
-        url = f"{self.base_url}{path}?limit={limit}"
-        if cursor:
-            url += f"&cursor={cursor}"
-        if status:
-            url += f"&status={status}"
-        if mve_filter:
-            url += f"&mve_filter={mve_filter}"
+        query_params = {k: v for k, v in {**kwargs, "limit": limit, "cursor": cursor}.items() if v is not None}
+        query_string = "&".join(f"{k}={v}" for k, v in query_params.items())
+        url = f"{self.base_url}{path}?{query_string}" if query_string else f"{self.base_url}{path}"
         headers = self._get_auth_headers(method, path)
         self._wait_for_rate_limit(method)
         response = self._send_request(method, url, headers, params=params)
@@ -111,7 +107,7 @@ class KalshiBase:
 
         return response
     
-    def get_paginated_results(self, method: str, path: str, params=None, status: str =None, mve_filter: str =None) -> list:
+    def get_paginated_results(self, method: str, path: str, params=None, **kwargs) -> list:
         '''Helper method to fetch all results from a paginated endpoint.'''
         if path not in PAGINATED_ENDPOINT_RESULT_KEYS:
             raise ValueError(f"Endpoint {path} is not supported for pagination.")
@@ -120,7 +116,7 @@ class KalshiBase:
         cursor = None
         dict_key = PAGINATED_ENDPOINT_RESULT_KEYS[path]
         while True:
-            response = self.make_request(method, path, cursor=cursor, params=params, status=status, mve_filter=mve_filter)
+            response = self.make_request(method, path, cursor=cursor, params=params, **kwargs)
             data = response.json()
             results = data.get(dict_key, [])
             all_results.extend(results)
