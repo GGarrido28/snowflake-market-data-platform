@@ -1,5 +1,5 @@
 # What is this project?
-A Snowflake-based data platform that ingests, models, and analyzes prediction market data (Kalshi) to evaluate market efficiency, probability calibration, and liquidity dynamics.
+A Snowflake-based data platform that ingests, analyzes, models, and visualizes prediction market data (Kalshi) to evaluate market efficiency, probability calibration, and liquidity dynamics.
 
 # Why this project?
 This project aims to provide insights into the efficiency of prediction markets, which are often used for forecasting events. By analyzing Kalshi's data, we can assess how well the market prices reflect actual probabilities, identify potential inefficiencies, and understand liquidity patterns. This can be valuable for traders, researchers, and anyone interested in the dynamics of prediction markets.
@@ -21,3 +21,20 @@ For my personal use, this project serves as a practical application of data engi
 - **Version Control**: GitHub
 - **Scheduling**: Airflow (optional for automating data collection and transformation)
 - **LLMs**: Cursor, Claude Code, Copilot
+
+# Kalshi Glossary
+## As defined by Kalshi
+For those unfamiliar with Kalshi's terminology, this section provides definitions based on https://docs.kalshi.com/getting_started/terms
+
+**Market**: A single binary market. This is a low level object which rarely will need to be exposed on its own to members. The usage of the term “market” here is consistent with how it’s used in the backend and API.
+**Event**: An event is a collection of markets and the basic unit that members should interact with on Kalshi.
+**Series**: A series is a collection of related events. The following should hold true for events that make up a series:
+* Each event should look at similar data for determination, but translated over another, disjoint time period.
+* Series should never have a logical outcome dependency between events.
+* Events in a series should have the same ticker prefix.
+
+## Additions and Clarifications
+
+
+## Examples of Terms
+**Market**: Will the S&P 500 close above 4000 on December 31, 2024?
