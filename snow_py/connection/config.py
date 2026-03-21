@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-_env_path = Path(__file__).parent / '.env'
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_env_path = PROJECT_ROOT / '.env'
 if _env_path.exists():
     load_dotenv(dotenv_path=_env_path)
 

@@ -9,7 +9,8 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
-_env_path = Path(__file__).parent.parent / '.env'
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_env_path = PROJECT_ROOT / '.env'
 if _env_path.exists():
     load_dotenv(dotenv_path=_env_path)
 

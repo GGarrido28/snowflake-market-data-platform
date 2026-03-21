@@ -19,3 +19,6 @@ dbt/profiles.yml
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+
+# logs
+logs/

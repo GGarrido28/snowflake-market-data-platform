@@ -51,6 +51,8 @@ pip install dbt-core dbt-snowflake
 ## 2. Configure your dbt profile
 Copy [`dbt/profiles.yml.example`](./dbt/profiles.yml.example) to `dbt/profiles.yml` and set the environment variables it references.
 
+This project uses a single root `.env` file for shared Snowflake/dbt configuration.
+
 At minimum, dbt expects:
 
 ```bash
@@ -68,7 +70,13 @@ DBT_SOURCE_SCHEMA=RAW
 The `SNOWFLAKE_*` settings match the Python connection code in `snow_py.connection.config`.
 
 ## 3. Run dbt locally
-From the repo root:
+From the repo root, first load the root `.env` into your PowerShell session:
+
+```bash
+. .\scripts\load_dbt_env.ps1
+```
+
+Then run:
 
 ```bash
 dbt debug --project-dir dbt --profiles-dir dbt
