@@ -10,6 +10,12 @@ __pycache__/
 
 # .env
 .env
+dbt/profiles.yml
 
 # Claude
 .claude/settings.json
+
+# dbt artifacts
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/

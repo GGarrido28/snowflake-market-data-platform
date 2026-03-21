@@ -9,8 +9,7 @@ For my personal use, this project serves as a practical application of data engi
 # Project Structure
 - `kalshi`: Contains the main code for data scraping from Kalshi API.
 - `snow_py`: Contains the code for data collection, modeling, transformation, and analysis in Snowflake.
-- `data_collection`: DBT scripts for data collection and transformation.
-- `data_analysis`: DBT scripts for data analysis and insights generation.
+- `dbt`: Local dbt project for Snowflake transformations and analytics models.
 - `README.md`: This file, providing an overview of the project and its purpose.
 
 # Tech Stack
@@ -38,3 +37,52 @@ For those unfamiliar with Kalshi's terminology, this section provides definition
 
 ## Examples of Terms
 **Market**: Will the S&P 500 close above 4000 on December 31, 2024?
+
+# dbt Setup
+This repo now includes a starter dbt project in [`dbt`](./dbt) for modeling Kalshi data in Snowflake.
+
+## 1. Install dbt for Snowflake
+Use the same virtual environment you use for this repo, then install:
+
+```bash
+pip install dbt-core dbt-snowflake
+```
+
+## 2. Configure your dbt profile
+Copy [`dbt/profiles.yml.example`](./dbt/profiles.yml.example) to `dbt/profiles.yml` and set the environment variables it references.
+
+At minimum, dbt expects:
+
+```bash
+SNOWFLAKE_ACCOUNT=...
+SNOWFLAKE_USER=...
+SNOWFLAKE_PASSWORD=...
+SNOWFLAKE_ROLE=...
+SNOWFLAKE_WAREHOUSE=...
+DBT_DATABASE=PROD
+DBT_SCHEMA=STAGE
+DBT_SOURCE_DATABASE=PROD
+DBT_SOURCE_SCHEMA=RAW
+```
+
+The `SNOWFLAKE_*` settings match the Python connection code in `snow_py.connection.config`.
+
+## 3. Run dbt locally
+From the repo root:
+
+```bash
+dbt debug --project-dir dbt --profiles-dir dbt
+dbt run --project-dir dbt --profiles-dir dbt
+dbt test --project-dir dbt --profiles-dir dbt
+dbt docs generate --project-dir dbt --profiles-dir dbt
+```
+
+## 4. Starter model layout
+The scaffold assumes you land raw Kalshi tables in Snowflake with the current Python scraper and then transform them in dbt:
+
+- `source('kalshi_raw', 'markets')` -> `stg_kalshi_markets`
+- `source('kalshi_raw', 'market_orderbooks')` -> `stg_kalshi_market_orderbooks`
+- `source('kalshi_raw', 'market_trades')` -> `stg_kalshi_market_trades`
+- `int_kalshi_markets` gives you a clean starting relation for downstream marts
+
+If your physical raw table names or schema differ, update [`dbt/models/sources.yml`](./dbt/models/sources.yml).

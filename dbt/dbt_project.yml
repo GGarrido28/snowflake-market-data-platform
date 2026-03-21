@@ -1,0 +1,39 @@
+name: snowflake_market_data_platform
+version: 1.0.0
+config-version: 2
+
+profile: snowflake_market_data_platform
+
+model-paths:
+  - models
+analysis-paths:
+  - analyses
+test-paths:
+  - tests
+seed-paths:
+  - seeds
+macro-paths:
+  - macros
+snapshot-paths:
+  - snapshots
+
+clean-targets:
+  - target
+  - dbt_packages
+  - logs
+
+models:
+  snowflake_market_data_platform:
+    +materialized: view
+    staging:
+      +schema: STAGE
+      +tags:
+        - staging
+    intermediate:
+      +schema: STAGE
+      +tags:
+        - intermediate
+    marts:
+      +schema: KALSHI
+      +tags:
+        - mart

@@ -1,0 +1,9 @@
+version: 2
+
+models:
+  - name: stg_kalshi_markets
+    description: One-to-one staging view over the raw Kalshi markets table.
+  - name: stg_kalshi_market_orderbooks
+    description: One-to-one staging view over the raw Kalshi market order books table.
+  - name: stg_kalshi_market_trades
+    description: One-to-one staging view over the raw Kalshi market trades table.

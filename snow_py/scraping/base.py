@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 
 class Scraper:
     def __init__(self):
-        self.snowflake_manager = SnowflakeManager("RAW_DATA_SOURCES", "KALSHI")
+        self.snowflake_manager = SnowflakeManager("PROD", "RAW")
 
     def _normalize_records(self, data: list) -> list[dict]:
         '''Flattens nested API responses into Snowflake-friendly row dictionaries.'''

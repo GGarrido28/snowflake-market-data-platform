@@ -1,0 +1,5 @@
+version: 2
+
+models:
+  - name: fct_markets
+    description: Starter final market-level model for portfolio-ready Kalshi analytics.

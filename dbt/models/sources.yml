@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: kalshi_raw
+    description: Raw Kalshi data landed in Snowflake by the Python ingestion layer.
+    database: "{{ env_var('DBT_SOURCE_DATABASE', 'PROD') }}"
+    schema: "{{ env_var('DBT_SOURCE_SCHEMA', 'RAW') }}"
+    tables:
+      - name: markets
+        identifier: RAW_MARKETS
+        description: Raw market-level payloads from the Kalshi API.
+      - name: market_orderbooks
+        identifier: RAW_MARKET_ORDERBOOKS
+        description: Raw order book snapshots keyed by market id.
+      - name: market_trades
+        identifier: RAW_MARKET_TRADES
+        description: Raw trade-level payloads from the Kalshi API.
