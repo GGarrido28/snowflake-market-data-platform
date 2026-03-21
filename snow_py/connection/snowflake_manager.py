@@ -9,7 +9,7 @@ from uuid import UUID
 from time import sleep
 from typing import Any, Sequence
 
-from snowflake.connection.config import SNOWFLAKE_CONFIG
+from snow_py.connection.config import SNOWFLAKE_CONFIG
 
 logging.basicConfig(level=logging.INFO)
 
@@ -388,6 +388,11 @@ class SnowflakeManager:
         self.validate_identifier(target_table, "table")
 
         try:
+            if not rows:
+                message = f"No rows provided for insert into {target_table}"
+                logging.info(message)
+                return (True, message) if return_error_msg else True
+
             check_dupes, dupe_rows = self.check_duplicate_rows(rows, columns)
             if check_dupes:
                 logging.warning("Duplicate rows found in data.")
@@ -429,7 +434,8 @@ class SnowflakeManager:
             for col in columns:
                 self.validate_identifier(col, "column")
 
-            # Prepare row values
+            # Prepare row values and track which columns contain dict/list (VARIANT) data
+            variant_cols: set[str] = set()
             prepared_rows: list[tuple[Any, ...]] = []
             if contains_dicts:
                 for row in rows:
@@ -437,6 +443,7 @@ class SnowflakeManager:
                     for col in columns:
                         value = row.get(col)
                         if isinstance(value, (dict, list)):
+                            variant_cols.add(col)
                             value = json.dumps(value)
                         elif value == "":
                             value = None
@@ -450,7 +457,10 @@ class SnowflakeManager:
                     prepared_rows = [tuple(row) if isinstance(row, (list, tuple)) else (row,) for row in rows]
 
             quoted_cols = ", ".join(self._quote_identifier(col) for col in columns)
-            placeholders = ", ".join(["%s"] * len(columns))
+            placeholders = ", ".join(
+                "PARSE_JSON(%s)" if col in variant_cols else "%s"
+                for col in columns
+            )
             qualified_table = f"{self._quote_identifier(self.database)}.{self._quote_identifier(self.schema)}.{self._quote_identifier(target_table)}"
 
             cursor = self.get_cursor()
@@ -491,11 +501,30 @@ class SnowflakeManager:
                         logging.info(f"MERGE into {target_table}")
                     cursor.execute(merge_query, prepared_row)
             else:
-                # Standard INSERT
-                insert_query = f"INSERT INTO {qualified_table} ({quoted_cols}) VALUES ({placeholders})"
+                # Standard INSERT — use INSERT INTO ... SELECT when VARIANT columns need PARSE_JSON()
+                if variant_cols:
+                    insert_query = f"INSERT INTO {qualified_table} ({quoted_cols}) SELECT {placeholders}"
+                else:
+                    insert_query = f"INSERT INTO {qualified_table} ({quoted_cols}) VALUES ({placeholders})"
                 if self.return_logging:
                     logging.info(f"{insert_query} ({len(prepared_rows)} rows)")
-                cursor.executemany(insert_query, prepared_rows)
+                try:
+                    cursor.executemany(insert_query, prepared_rows)
+                except snowflake.connector.errors.InterfaceError as e:
+                    # Some connector versions fail to rewrite bulk inserts for valid row sets.
+                    if "Failed to rewrite multi-row insert" not in str(e):
+                        raise
+                    logging.warning(
+                        "Bulk insert rewrite failed for %s; retrying with chunked multi-row inserts.",
+                        target_table,
+                    )
+                    self._execute_chunked_insert(
+                        cursor=cursor,
+                        qualified_table=qualified_table,
+                        columns=columns,
+                        prepared_rows=prepared_rows,
+                        variant_cols=variant_cols,
+                    )
 
             cursor.close()
             logging.info(f"Rows inserted successfully into {target_table}")
@@ -513,6 +542,54 @@ class SnowflakeManager:
             error_msg = f"Unexpected error inserting rows: {e}"
             logging.error(error_msg, exc_info=True)
             return (False, error_msg) if return_error_msg else False
+
+    def _execute_chunked_insert(
+        self,
+        cursor: snowflake.connector.cursor.SnowflakeCursor,
+        qualified_table: str,
+        columns: list[str],
+        prepared_rows: list[tuple[Any, ...]],
+        variant_cols: set[str],
+        chunk_size: int = 500,
+    ) -> None:
+        """Execute chunked inserts to reduce round trips when executemany rewrite fails."""
+        quoted_cols = ", ".join(self._quote_identifier(col) for col in columns)
+        row_placeholder = f"({', '.join(['%s'] * len(columns))})"
+        total_chunks = (len(prepared_rows) + chunk_size - 1) // chunk_size
+
+        if variant_cols:
+            value_aliases = [f"c{i}" for i in range(len(columns))]
+            aliased_cols = ", ".join(value_aliases)
+            select_exprs = ", ".join(
+                f"PARSE_JSON({alias})" if col in variant_cols else alias
+                for alias, col in zip(value_aliases, columns)
+            )
+
+        for chunk_index, start in enumerate(range(0, len(prepared_rows), chunk_size), start=1):
+            chunk = prepared_rows[start:start + chunk_size]
+            flat_params = [value for row in chunk for value in row]
+
+            if variant_cols:
+                values_clause = ", ".join([row_placeholder] * len(chunk))
+                insert_query = (
+                    f"INSERT INTO {qualified_table} ({quoted_cols}) "
+                    f"SELECT {select_exprs} "
+                    f"FROM VALUES {values_clause} AS src({aliased_cols})"
+                )
+            else:
+                values_clause = ", ".join([row_placeholder] * len(chunk))
+                insert_query = f"INSERT INTO {qualified_table} ({quoted_cols}) VALUES {values_clause}"
+
+            cursor.execute(insert_query, flat_params)
+
+            if chunk_index == 1 or chunk_index == total_chunks or chunk_index % 10 == 0:
+                logging.info(
+                    "Inserted chunk %s/%s into %s (%s rows).",
+                    chunk_index,
+                    total_chunks,
+                    qualified_table,
+                    len(chunk),
+                )
 
     def get_tables(self) -> dict[str, dict[str, str]]:
         """
@@ -564,7 +641,8 @@ class SnowflakeManager:
             bool: True if created successfully
         """
         if not dict_list:
-            raise ValueError("The dictionary list is empty")
+            logging.info(f"No rows provided to create table {table_name}; skipping table creation.")
+            return False
 
         if primary_keys and not isinstance(primary_keys, list):
             raise ValueError("Primary keys should be provided as a list")
@@ -643,7 +721,8 @@ class SnowflakeManager:
             bool: True if successful
         """
         if not dict_list:
-            raise ValueError("The dictionary list is empty")
+            logging.info(f"No rows provided to dump into {table_name}; skipping dummy table load.")
+            return False
 
         self.validate_identifier(table_name, "table")
 

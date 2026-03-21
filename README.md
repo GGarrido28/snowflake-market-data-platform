@@ -7,8 +7,8 @@ This project aims to provide insights into the efficiency of prediction markets,
 For my personal use, this project serves as a practical application of data engineering and analytics skills, allowing me to work with real-world data and derive meaningful insights. It also provides an opportunity to explore the intersection of finance, economics, sports, and data science. I decided to use Snowflake because of its scalability, performance, and ease of use for data warehousing and analytics. Snowflake's ability to handle large volumes of data and its support for SQL make it an ideal choice for this project. 
 
 # Project Structure
-- `kalshi`: Contains the main code for data scraping and collection from Kalshi API.
-- `snowflake`: Contains the code for data modeling, transformation, and analysis in Snowflake.
+- `kalshi`: Contains the main code for data scraping from Kalshi API.
+- `snow_py`: Contains the code for data collection, modeling, transformation, and analysis in Snowflake.
 - `data_collection`: DBT scripts for data collection and transformation.
 - `data_analysis`: DBT scripts for data analysis and insights generation.
 - `README.md`: This file, providing an overview of the project and its purpose.
