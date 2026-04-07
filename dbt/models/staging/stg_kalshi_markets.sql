@@ -1,2 +1,57 @@
-select *
-from {{ source('kalshi_raw', 'markets') }}
+{{ config(materialized='table') }}
+
+with source as (
+    select *
+    from {{ source('kalshi_raw', 'markets') }}
+)
+
+select
+    "ticker" as market_ticker,
+    "event_ticker" as event_ticker,
+    "market_type" as market_type,
+    "status" as market_status,
+    "result" as market_result,
+    "title" as market_title,
+    "subtitle" as market_subtitle,
+    "yes_sub_title" as yes_subtitle,
+    "no_sub_title" as no_subtitle,
+    "rules_primary" as primary_rules,
+    "rules_secondary" as secondary_rules,
+    "response_price_units" as response_price_units,
+    "price_level_structure" as price_level_structure,
+    "strike_type" as strike_type,
+    "expiration_value" as expiration_value,
+    "early_close_condition" as early_close_condition,
+    "primary_participant_key" as primary_participant_key,
+    "can_close_early" as can_close_early,
+    "fractional_trading_enabled" as is_fractional_trading_enabled,
+    try_to_timestamp_ntz("created_time") as created_at,
+    try_to_timestamp_ntz("open_time") as open_at,
+    try_to_timestamp_ntz("close_time") as close_at,
+    try_to_timestamp_ntz("expected_expiration_time") as expected_expiration_at,
+    try_to_timestamp_ntz("expiration_time") as expiration_at,
+    try_to_timestamp_ntz("latest_expiration_time") as latest_expiration_at,
+    try_to_timestamp_ntz("updated_time") as updated_at,
+    try_to_timestamp_ntz("fee_waiver_expiration_time") as fee_waiver_expiration_at,
+    try_to_decimal("last_price_dollars", 18, 4) as last_price_dollars,
+    try_to_decimal("liquidity_dollars", 18, 4) as liquidity_dollars,
+    try_to_decimal("no_ask_dollars", 18, 4) as no_ask_dollars,
+    try_to_decimal("no_bid_dollars", 18, 4) as no_bid_dollars,
+    try_to_decimal("notional_value_dollars", 18, 4) as notional_value_dollars,
+    try_to_decimal("previous_price_dollars", 18, 4) as previous_price_dollars,
+    try_to_decimal("previous_yes_ask_dollars", 18, 4) as previous_yes_ask_dollars,
+    try_to_decimal("previous_yes_bid_dollars", 18, 4) as previous_yes_bid_dollars,
+    try_to_decimal("yes_ask_dollars", 18, 4) as yes_ask_dollars,
+    try_to_decimal("yes_bid_dollars", 18, 4) as yes_bid_dollars,
+    try_to_decimal("open_interest_fp", 38, 6) as open_interest_fp,
+    try_to_decimal("volume_24h_fp", 38, 6) as volume_24h_fp,
+    try_to_decimal("volume_fp", 38, 6) as volume_fp,
+    try_to_decimal("yes_ask_size_fp", 38, 6) as yes_ask_size_fp,
+    try_to_decimal("yes_bid_size_fp", 38, 6) as yes_bid_size_fp,
+    "settlement_timer_seconds" as settlement_timer_seconds,
+    "tick_size" as tick_size,
+    "floor_strike" as floor_strike,
+    "cap_strike" as cap_strike,
+    "custom_strike" as custom_strike,
+    "price_ranges" as price_ranges
+from source

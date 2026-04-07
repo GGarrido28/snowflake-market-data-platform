@@ -2,7 +2,35 @@ version: 2
 
 models:
   - name: stg_kalshi_markets
-    description: One-to-one staging view over the raw Kalshi markets table.
+    description: Typed staging table over raw Kalshi markets with normalized timestamps and numeric price fields.
+    columns:
+      - name: market_ticker
+        description: Stable Kalshi market identifier sourced from RAW_MARKETS.ticker.
+        tests:
+          - not_null
+          - unique
+      - name: event_ticker
+        description: Event identifier associated with the market.
+      - name: market_status
+        description: Current lifecycle status reported by Kalshi for the market.
+      - name: market_title
+        description: Human-readable market title.
+      - name: created_at
+        description: Market creation timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: open_at
+        description: Market open timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: close_at
+        description: Market close timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: expiration_at
+        description: Market expiration timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: last_price_dollars
+        description: Last traded market price in dollars as a numeric value.
+      - name: liquidity_dollars
+        description: Available market liquidity in dollars as a numeric value.
+      - name: yes_bid_dollars
+        description: Current yes-side bid price in dollars as a numeric value.
+      - name: yes_ask_dollars
+        description: Current yes-side ask price in dollars as a numeric value.
   - name: stg_kalshi_market_orderbooks
     description: One-to-one staging view over the raw Kalshi market order books table.
   - name: stg_kalshi_market_trades

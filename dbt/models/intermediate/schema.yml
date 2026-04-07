@@ -1,5 +1,0 @@
-version: 2
-
-models:
-  - name: int_kalshi_markets
-    description: Starter intermediate model over raw Kalshi markets for downstream marts.

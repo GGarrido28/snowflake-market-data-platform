@@ -1,3 +1,3 @@
 select
     *
-from {{ ref('int_kalshi_markets') }}
+from {{ ref('stg_kalshi_markets') }}

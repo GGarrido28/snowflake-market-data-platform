@@ -29,10 +29,6 @@ models:
       +schema: STAGE
       +tags:
         - staging
-    intermediate:
-      +schema: STAGE
-      +tags:
-        - intermediate
     marts:
       +schema: KALSHI
       +tags:
