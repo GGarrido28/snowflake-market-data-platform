@@ -2,4 +2,26 @@ version: 2
 
 models:
   - name: fct_markets
-    description: Starter final market-level model for portfolio-ready Kalshi analytics.
+    description: Market-grain fact model enriched with event-level category and series metadata.
+    columns:
+      - name: market_ticker
+        description: Stable Kalshi market identifier.
+        tests:
+          - not_null
+          - unique
+      - name: event_ticker
+        description: Event identifier associated with the market.
+      - name: category
+        description: Broad event category associated with the market through its parent event.
+      - name: series_ticker
+        description: Series identifier shared across related Kalshi events.
+      - name: event_title
+        description: Parent event title associated with the market.
+  - name: dim_kalshi_categories
+    description: Distinct category dimension covering all Kalshi event categories.
+    columns:
+      - name: category
+        description: Natural key for the Kalshi category dimension.
+        tests:
+          - not_null
+          - unique

@@ -15,3 +15,6 @@ sources:
       - name: market_trades
         identifier: RAW_MARKET_TRADES
         description: Raw trade-level payloads from the Kalshi API.
+      - name: events
+        identifier: RAW_EVENTS
+        description: Raw event-level payloads from the Kalshi API.

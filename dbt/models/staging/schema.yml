@@ -35,3 +35,19 @@ models:
     description: One-to-one staging view over the raw Kalshi market order books table.
   - name: stg_kalshi_market_trades
     description: One-to-one staging view over the raw Kalshi market trades table.
+  - name: stg_kalshi_events
+    description: Typed staging view over raw Kalshi events with normalized event metadata and category.
+    columns:
+      - name: event_ticker
+        description: Stable Kalshi event identifier sourced from RAW_EVENTS.event_ticker.
+        tests:
+          - not_null
+          - unique
+      - name: category
+        description: Event category used to group markets into broad topical buckets.
+      - name: series_ticker
+        description: Series identifier shared across related Kalshi events.
+      - name: event_title
+        description: Human-readable event title.
+      - name: event_subtitle
+        description: Secondary event label from the Kalshi API.
