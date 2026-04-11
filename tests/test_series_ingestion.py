@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kalshi.markets.series import Series
-from snow_py.scraping.base import Scraper
+from snow_py.scraping.series import SeriesScraper
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -32,26 +32,16 @@ class SeriesPaginationTests(unittest.TestCase):
             category="economics",
         )
 
-    @patch("snow_py.scraping.base.SnowflakeManager")
-    @patch("snow_py.scraping.base.Markets")
-    @patch("snow_py.scraping.base.Events")
-    @patch("snow_py.scraping.base.Series")
+    @patch("snow_py.base.SnowflakeManager")
+    @patch("snow_py.scraping.series.Series")
     def test_scraper_loads_all_series_pages(
         self,
         mock_series_class,
-        mock_events_class,
-        mock_markets_class,
         _mock_snowflake_manager,
     ):
-        mock_events_class.return_value.get_all_events.return_value = []
-        mock_markets_class.return_value.get_market_endpoints.return_value = {
-            "markets": [],
-            "orderbook": [],
-            "trades": [],
-        }
         mock_series_class.return_value.get_all_series.return_value = [{"ticker": "KXTEST"}]
 
-        scraper = Scraper()
+        scraper = SeriesScraper()
         with patch.object(scraper, "store_data_in_snowflake") as mock_store:
             scraper.run()
 
