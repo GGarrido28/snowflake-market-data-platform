@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Change PR Flow"
+  short_description: "Run full branch, PR, review, and labeling workflow"
+  default_prompt: "Use $code-change-pr-workflow to implement this repo change end to end, including branch creation, commits, PR setup, review delegation, and labels."

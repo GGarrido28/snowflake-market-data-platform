@@ -10,6 +10,7 @@ For my personal use, this project serves as a practical application of data engi
 - `kalshi`: Contains the main code for data scraping from Kalshi API.
 - `snow_py`: Contains the code for data collection, modeling, transformation, and analysis in Snowflake.
 - `dbt`: Local dbt project for Snowflake transformations and analytics models.
+- `ai`: Public AI-facing artifacts, including a display copy of the Codex skill used for repo change workflows.
 - `docs`: Lightweight project documentation, including a Kalshi entity map and join-key cheat sheet.
 - `README.md`: This file, providing an overview of the project and its purpose.
 
@@ -98,3 +99,7 @@ If your physical raw table names or schema differ, update [`dbt/models/sources.y
 
 ## Entity Map
 If you need a quick reminder of how Kalshi objects connect, see [`docs/kalshi_entity_map.md`](./docs/kalshi_entity_map.md).
+
+## AI Workflow Docs
+For the public display copy of the Codex workflow skill, see [`ai/`](./ai).
+For repo PR naming and labeling conventions, see [`docs/pr-conventions.md`](./docs/pr-conventions.md).
