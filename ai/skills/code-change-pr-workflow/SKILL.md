@@ -91,9 +91,9 @@ Use the same semantic prefix family for the branch and PR title.
 
 Examples:
 
-- branch `feat/add-series-loader` -> PR title `feat: add series loader`
-- branch `fix/repair-orderbook-keying` -> PR title `fix: repair orderbook keying`
-- branch `docs/add-entity-map` -> PR title `docs: add entity map`
+- branch `feat/add-series-loader` -> PR title `feat/add-series-loader`
+- branch `fix/repair-orderbook-keying` -> PR title `fix/repair-orderbook-keying`
+- branch `docs/add-entity-map` -> PR title `docs/add-entity-map`
 
 Inspect the repo's actual labels before applying them. Do not assume a label exists.
 
