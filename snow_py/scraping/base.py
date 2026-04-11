@@ -1,6 +1,7 @@
 import logging
 
 from kalshi.markets import Markets
+from kalshi.markets import Series
 from kalshi.events import Events
 from snow_py.connection import SnowflakeManager
 
@@ -65,13 +66,23 @@ class Scraper:
         '''Runs the scraper.'''
         logging.info("Starting scraper...")
         
+        # Events
         try:
             events = Events()
             event_data = events.get_all_events(all_pages=True, status='open')
             self.store_data_in_snowflake(event_data, "RAW_EVENTS", ["event_ticker"])
         except Exception as e:
             logging.error(f"Error fetching events data: {e}")
-            
+        
+        # Series
+        try:
+            series = Series()
+            series_data = series.get_all_series()
+            self.store_data_in_snowflake(series_data, "RAW_SERIES", ["ticker"])
+        except Exception as e:
+            logging.error(f"Error fetching series data: {e}")
+
+        # Markets
         try:
             markets = Markets()
             market_data = markets.get_market_endpoints()

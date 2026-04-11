@@ -51,3 +51,15 @@ models:
         description: Human-readable event title.
       - name: event_subtitle
         description: Secondary event label from the Kalshi API.
+  - name: stg_kalshi_series
+    description: Typed staging view over raw Kalshi series with normalized series metadata.
+    columns:
+      - name: series_ticker
+        description: Stable Kalshi series identifier sourced from RAW_SERIES.series_ticker.
+        tests:
+          - not_null
+          - unique
+      - name: series_title
+        description: Human-readable series title.
+      - name: series_subtitle
+        description: Secondary series label from the Kalshi API.
