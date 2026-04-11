@@ -34,6 +34,7 @@ class Scraper(ABC):
 
         if primary_keys is None:
             primary_keys = []
+        should_upsert = bool(primary_keys)
 
         if self.snowflake_manager.check_table_exists(table_name):
             success, log = self.snowflake_manager.insert_rows(
@@ -41,6 +42,7 @@ class Scraper(ABC):
                 columns=list(normalized_data[0].keys()),
                 rows=normalized_data,
                 contains_dicts=True,
+                update=should_upsert,
                 return_error_msg=True
             )
             if not success:
@@ -60,6 +62,7 @@ class Scraper(ABC):
                 columns=list(normalized_data[0].keys()),
                 rows=normalized_data,
                 contains_dicts=True,
+                update=should_upsert,
                 return_error_msg=True
             )
             if not success:

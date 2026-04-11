@@ -36,6 +36,7 @@ For those unfamiliar with Kalshi's terminology, this section provides definition
 
 ## Additions and Clarifications
 
+**Order Book**: The order book displays all the resting orders available on the market. It displays the quantity of resting orders available as well as their corresponding prices. A resting order is an offer to purchase contracts at a certain price that is not matched immediately.
 
 ## Examples of Terms
 **Market**: Will the S&P 500 close above 4000 on December 31, 2024?
@@ -70,6 +71,45 @@ DBT_SOURCE_SCHEMA=RAW
 ```
 
 The `SNOWFLAKE_*` settings match the Python connection code in `snow_py.connection.config`.
+
+## Markets Scraper Scope
+The markets scraper is intentionally scoped now so it does not try to crawl every Kalshi market.
+Set exactly one of these in your root `.env` before running `snow_py/scraping/markets.py`:
+
+```bash
+KALSHI_EVENT_TICKER=KXMLBTOTAL-26APR111310MIADET
+```
+
+or
+
+```bash
+KALSHI_MARKET_TICKER=KXMLBTOTAL-26APR111310MIADET-14
+```
+
+## Events Scraper Status
+The events scraper defaults to open events only. To include non-open or historical events in `RAW_EVENTS`, set:
+
+```bash
+KALSHI_EVENTS_STATUS=all
+```
+
+If you want a specific status instead, set it directly, for example:
+
+```bash
+KALSHI_EVENTS_STATUS=open
+```
+
+To backfill a single event or a single series without crawling all historical events, scope the scraper with one of:
+
+```bash
+KALSHI_EVENTS_EVENT_TICKER=KXMASTERS-25
+```
+
+or
+
+```bash
+KALSHI_EVENTS_SERIES_TICKER=KXMASTERS
+```
 
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:

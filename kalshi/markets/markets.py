@@ -1,4 +1,11 @@
+import logging
+from time import perf_counter
+
 from kalshi.base import KalshiBase
+
+
+DEFAULT_MARKETS_PAGE_SIZE = 1000
+DETAIL_PROGRESS_EVERY = 100
 
 class Markets(KalshiBase):
     def __init__(self):
@@ -7,42 +14,105 @@ class Markets(KalshiBase):
         self.orderbook = []
         self.trades = []
         
-    def get_all_markets(self, limit=100, params=None, all_pages=False, **kwargs) -> list:
+    def get_all_markets(self, limit=DEFAULT_MARKETS_PAGE_SIZE, params=None, all_pages=False, **kwargs) -> list:
         '''Fetches a list of markets with optional filtering parameters.'''
         if all_pages:
-            return self.get_paginated_results("GET", "/markets", params=params, **kwargs)
+            return self.get_paginated_results("GET", "/markets", params=params, limit=limit, **kwargs)
         else:
             response = self.make_request("GET", "/markets", limit=limit, params=params, **kwargs)
             return response.json().get("markets", [])
     
-    def get_market_orderbook(self, market_id: str) -> dict:
+    def get_market_orderbook(self, market_ticker: str) -> dict:
         '''Fetches the order book for a specific market.'''
-        response = self.make_request("GET", f"/markets/{market_id}/orderbook")
+        response = self.make_request("GET", f"/markets/{market_ticker}/orderbook")
         return response.json().get("orderbook_fp", {})
     
-    def get_market_trades(self, market_id: str=None, limit=100) -> list:
+    def get_market_trades(self, market_ticker: str=None, limit=100) -> list:
         '''Fetches recent trades for a specific market.'''
-        response = self.make_request("GET", "/markets/trades", limit=limit, ticker=market_id)
+        response = self.make_request("GET", "/markets/trades", limit=limit, ticker=market_ticker)
         return response.json().get("trades", [])
-    
-    def get_market_endpoints(self):
-        '''Runs all market-related endpoints and stores results in class attributes.'''
-        self.markets = self.get_all_markets(all_pages=True, status='open', mve_filter='exclude', limit=1)
-        for market in self.markets:
-            market_id = market.get("id")
-            if market_id:
-                orderbook = self.get_market_orderbook(market_id)
+
+    def get_market(self, market_ticker: str) -> dict:
+        '''Fetches a single market by ticker.'''
+        response = self.make_request("GET", f"/markets/{market_ticker}")
+        return response.json().get("market", {})
+
+    def get_target_markets(self, market_ticker: str | None = None, event_ticker: str | None = None) -> list:
+        '''Fetches the scoped set of markets for a specific market or event.'''
+        if market_ticker and event_ticker:
+            raise ValueError("Set either market_ticker or event_ticker, not both.")
+        if not market_ticker and not event_ticker:
+            raise ValueError("A market_ticker or event_ticker is required for targeted market scraping.")
+
+        if market_ticker:
+            market = self.get_market(market_ticker)
+            self.markets = [market] if market else []
+        else:
+            self.markets = self.get_all_markets(
+                all_pages=True,
+                limit=DEFAULT_MARKETS_PAGE_SIZE,
+                event_ticker=event_ticker,
+            )
+        return self.markets
+
+    def get_market_details(self, markets: list[dict] | None = None, progress_every: int = DETAIL_PROGRESS_EVERY) -> dict:
+        '''Fetches orderbooks and recent trades for a list of markets with progress logging.'''
+        if markets is None:
+            markets = self.markets
+
+        self.orderbook = []
+        self.trades = []
+
+        total_markets = len(markets or [])
+        if not total_markets:
+            return {
+                "orderbook": self.orderbook,
+                "trades": self.trades,
+            }
+
+        start = perf_counter()
+        for index, market in enumerate(markets, start=1):
+            market_ticker = market.get("ticker")
+            if market_ticker:
+                orderbook = self.get_market_orderbook(market_ticker)
                 if orderbook:
                     self.orderbook.append({
-                        "market_id": market_id,
+                        "market_ticker": market_ticker,
                         "orderbook": orderbook,
                     })
 
-                trades = self.get_market_trades(market_id)
+                trades = self.get_market_trades(market_ticker)
                 if trades:
                     self.trades.extend(trades)
+
+            if (
+                index == 1
+                or index == total_markets
+                or (progress_every and index % progress_every == 0)
+            ):
+                elapsed = perf_counter() - start
+                logging.info(
+                    "Processed %s/%s markets for orderbooks/trades in %.1fs (%s orderbooks, %s trades).",
+                    index,
+                    total_markets,
+                    elapsed,
+                    len(self.orderbook),
+                    len(self.trades),
+                )
+
+        return {
+            "orderbook": self.orderbook,
+            "trades": self.trades,
+        }
+    def get_market_endpoints(self, market_ticker: str | None = None, event_ticker: str | None = None):
+        '''Runs all market-related endpoints and stores results in class attributes.'''
+        self.markets = self.get_target_markets(
+            market_ticker=market_ticker,
+            event_ticker=event_ticker,
+        )
+        detail_data = self.get_market_details(self.markets)
         return {
             "markets": self.markets,
-            "orderbook": self.orderbook,
-            "trades": self.trades
+            "orderbook": detail_data["orderbook"],
+            "trades": detail_data["trades"],
         }
