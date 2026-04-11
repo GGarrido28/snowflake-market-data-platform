@@ -44,11 +44,11 @@ models:
       - name: orderbook
         description: JSON orderbook snapshot containing yes_dollars and no_dollars bid ladders.
   - name: stg_kalshi_market_trades
-    description: One-to-one staging view over the raw Kalshi market trades table.
+    description: Typed staging view over raw Kalshi market trades with normalized identifiers and timestamps.
     columns:
       - name: trade_id
         description: Stable Kalshi trade identifier.
-      - name: ticker
+      - name: market_ticker
         description: Market ticker for the traded market.
       - name: count_fp
         description: Fixed-point trade size returned by the API.
@@ -58,8 +58,8 @@ models:
         description: No-side execution price in dollars.
       - name: taker_side
         description: Side of the aggressing order for the trade.
-      - name: created_time
-        description: Trade execution timestamp returned by the API.
+      - name: trade_time
+        description: Trade execution timestamp normalized to Snowflake TIMESTAMP_NTZ.
   - name: stg_kalshi_events
     description: Typed staging view over raw Kalshi events with normalized event metadata and category.
     columns:
