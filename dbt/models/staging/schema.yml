@@ -59,7 +59,17 @@ models:
         tests:
           - not_null
           - unique
+      - name: category
+        description: Broad series category used to group related recurring event templates.
       - name: series_title
         description: Human-readable series title.
-      - name: series_subtitle
-        description: Secondary series label from the Kalshi API.
+      - name: tags
+        description: Kalshi-provided tags associated with the series.
+      - name: frequency
+        description: Recurrence cadence for the series, such as daily or monthly.
+      - name: fee_multiplier
+        description: Numeric multiplier used in Kalshi fee calculations for the series.
+      - name: fee_type
+        description: Fee model applied to contracts in the series.
+      - name: updated_at
+        description: Series metadata update timestamp normalized to Snowflake TIMESTAMP_NTZ.

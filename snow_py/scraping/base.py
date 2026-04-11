@@ -77,7 +77,7 @@ class Scraper:
         # Series
         try:
             series = Series()
-            series_data = series.get_all_series()
+            series_data = series.get_all_series(all_pages=True)
             self.store_data_in_snowflake(series_data, "RAW_SERIES", ["ticker"])
         except Exception as e:
             logging.error(f"Error fetching series data: {e}")
