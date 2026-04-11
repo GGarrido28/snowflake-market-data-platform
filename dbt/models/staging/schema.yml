@@ -11,6 +11,11 @@ models:
           - unique
       - name: event_ticker
         description: Event identifier associated with the market.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_kalshi_events')
+                field: event_ticker
       - name: market_status
         description: Current lifecycle status reported by Kalshi for the market.
       - name: market_title
@@ -33,8 +38,28 @@ models:
         description: Current yes-side ask price in dollars as a numeric value.
   - name: stg_kalshi_market_orderbooks
     description: One-to-one staging view over the raw Kalshi market order books table.
+    columns:
+      - name: market_id
+        description: Market identifier currently stored by the scraper for orderbook snapshots. This key is not yet standardized to market_ticker.
+      - name: orderbook
+        description: JSON orderbook snapshot containing yes_dollars and no_dollars bid ladders.
   - name: stg_kalshi_market_trades
     description: One-to-one staging view over the raw Kalshi market trades table.
+    columns:
+      - name: trade_id
+        description: Stable Kalshi trade identifier.
+      - name: ticker
+        description: Market ticker for the traded market.
+      - name: count_fp
+        description: Fixed-point trade size returned by the API.
+      - name: yes_price_dollars
+        description: Yes-side execution price in dollars.
+      - name: no_price_dollars
+        description: No-side execution price in dollars.
+      - name: taker_side
+        description: Side of the aggressing order for the trade.
+      - name: created_time
+        description: Trade execution timestamp returned by the API.
   - name: stg_kalshi_events
     description: Typed staging view over raw Kalshi events with normalized event metadata and category.
     columns:
@@ -47,6 +72,11 @@ models:
         description: Event category used to group markets into broad topical buckets.
       - name: series_ticker
         description: Series identifier shared across related Kalshi events.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_kalshi_series')
+                field: series_ticker
       - name: event_title
         description: Human-readable event title.
       - name: event_subtitle
