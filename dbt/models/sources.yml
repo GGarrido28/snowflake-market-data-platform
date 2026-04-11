@@ -18,3 +18,7 @@ sources:
       - name: events
         identifier: RAW_EVENTS
         description: Raw event-level payloads from the Kalshi API.
+      - name: series
+        identifier: RAW_SERIES
+        description: Raw series-level payloads from the Kalshi API.
+        

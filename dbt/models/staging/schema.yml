@@ -51,3 +51,25 @@ models:
         description: Human-readable event title.
       - name: event_subtitle
         description: Secondary event label from the Kalshi API.
+  - name: stg_kalshi_series
+    description: Typed staging view over raw Kalshi series with normalized series metadata.
+    columns:
+      - name: series_ticker
+        description: Stable Kalshi series identifier sourced from RAW_SERIES.series_ticker.
+        tests:
+          - not_null
+          - unique
+      - name: category
+        description: Broad series category used to group related recurring event templates.
+      - name: series_title
+        description: Human-readable series title.
+      - name: tags
+        description: Kalshi-provided tags associated with the series.
+      - name: frequency
+        description: Recurrence cadence for the series, such as daily or monthly.
+      - name: fee_multiplier
+        description: Numeric multiplier used in Kalshi fee calculations for the series.
+      - name: fee_type
+        description: Fee model applied to contracts in the series.
+      - name: updated_at
+        description: Series metadata update timestamp normalized to Snowflake TIMESTAMP_NTZ.
