@@ -13,7 +13,7 @@ There is also a current orderbook snapshot at the market level.
 | `stg_kalshi_series` | `stg_kalshi_events` | `series_ticker` | One series can contain many events. |
 | `stg_kalshi_events` | `stg_kalshi_markets` | `event_ticker` | One event can contain many markets. |
 | `stg_kalshi_markets` | `stg_kalshi_market_trades` | `market_ticker = ticker` | Trades are market-grain executions keyed by market ticker in the API payload. |
-| `stg_kalshi_markets` | `stg_kalshi_market_orderbooks` | not standardized yet | Orderbooks are currently stored with `market_id` from the scraper, not `market_ticker`. |
+| `stg_kalshi_markets` | `stg_kalshi_market_orderbooks` | `market_ticker` | Orderbooks are keyed by the Kalshi market ticker. |
 
 ## Mental Model
 
@@ -31,7 +31,7 @@ There is also a current orderbook snapshot at the market level.
 | `RAW_EVENTS` | `GET /events` | `event_ticker`, `series_ticker` | `category`, `title`, `sub_title`, `product_metadata`, `last_updated_ts` | string, object, timestamp string |
 | `RAW_MARKETS` | `GET /markets` | `ticker`, `event_ticker` | `status`, `title`, `subtitle`, `created_time`, `updated_time`, `last_price_dollars`, `volume_fp` | string, timestamp string, decimal string |
 | `RAW_MARKET_TRADES` | `GET /markets/trades` | `trade_id`, `ticker` | `count_fp`, `yes_price_dollars`, `no_price_dollars`, `taker_side`, `created_time` | string, decimal string, timestamp string |
-| `RAW_MARKET_ORDERBOOKS` | `GET /markets/{ticker}/orderbook` | `market_id` | `orderbook` | string, object |
+| `RAW_MARKET_ORDERBOOKS` | `GET /markets/{ticker}/orderbook` | `market_ticker` | `orderbook` | string, object |
 
 ## Staging Conventions
 
@@ -39,6 +39,7 @@ There is also a current orderbook snapshot at the market level.
 - `stg_kalshi_events.event_ticker` comes from `RAW_EVENTS.event_ticker`
 - `stg_kalshi_events.series_ticker` links events back to series
 - `stg_kalshi_markets.market_ticker` comes from `RAW_MARKETS.ticker`
+- `stg_kalshi_market_orderbooks.market_ticker` comes from `RAW_MARKET_ORDERBOOKS.market_ticker`
 - `stg_kalshi_markets.event_ticker` links markets back to events
 
 ## Quick SQL Joins

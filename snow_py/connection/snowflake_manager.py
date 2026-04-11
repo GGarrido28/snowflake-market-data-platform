@@ -466,40 +466,16 @@ class SnowflakeManager:
             cursor = self.get_cursor()
 
             if update and pk:
-                # Use MERGE for upsert
-                update_cols = [col for col in columns if col not in pk]
-                on_clause = " AND ".join(
-                    f"target.{self._quote_identifier(p)} = source.{self._quote_identifier(p)}"
-                    for p in pk
+                if self.return_logging:
+                    logging.info("MERGE into %s (%s rows)", target_table, len(prepared_rows))
+                self._execute_chunked_merge(
+                    cursor=cursor,
+                    qualified_table=qualified_table,
+                    columns=columns,
+                    prepared_rows=prepared_rows,
+                    variant_cols=variant_cols,
+                    primary_keys=pk,
                 )
-                source_cols = ", ".join(
-                    f"source.{self._quote_identifier(col)}" for col in columns
-                )
-
-                if update_cols:
-                    set_clause = ", ".join(
-                        f"target.{self._quote_identifier(col)} = source.{self._quote_identifier(col)}"
-                        for col in update_cols
-                    )
-                    merge_query = (
-                        f"MERGE INTO {qualified_table} AS target "
-                        f"USING (SELECT {', '.join(f'%s AS {self._quote_identifier(col)}' for col in columns)}) AS source "
-                        f"ON {on_clause} "
-                        f"WHEN MATCHED THEN UPDATE SET {set_clause} "
-                        f"WHEN NOT MATCHED THEN INSERT ({quoted_cols}) VALUES ({source_cols})"
-                    )
-                else:
-                    merge_query = (
-                        f"MERGE INTO {qualified_table} AS target "
-                        f"USING (SELECT {', '.join(f'%s AS {self._quote_identifier(col)}' for col in columns)}) AS source "
-                        f"ON {on_clause} "
-                        f"WHEN NOT MATCHED THEN INSERT ({quoted_cols}) VALUES ({source_cols})"
-                    )
-
-                for prepared_row in prepared_rows:
-                    if self.return_logging:
-                        logging.info(f"MERGE into {target_table}")
-                    cursor.execute(merge_query, prepared_row)
             else:
                 # Standard INSERT — use INSERT INTO ... SELECT when VARIANT columns need PARSE_JSON()
                 if variant_cols:
@@ -585,6 +561,83 @@ class SnowflakeManager:
             if chunk_index == 1 or chunk_index == total_chunks or chunk_index % 10 == 0:
                 logging.info(
                     "Inserted chunk %s/%s into %s (%s rows).",
+                    chunk_index,
+                    total_chunks,
+                    qualified_table,
+                    len(chunk),
+                )
+
+    def _build_values_source_query(
+        self,
+        columns: list[str],
+        row_count: int,
+        variant_cols: set[str],
+    ) -> str:
+        """Build a SELECT over VALUES that preserves VARIANT columns."""
+        row_placeholder = f"({', '.join(['%s'] * len(columns))})"
+        values_clause = ", ".join([row_placeholder] * row_count)
+        value_aliases = [f"c{i}" for i in range(len(columns))]
+        aliased_cols = ", ".join(value_aliases)
+        select_exprs = ", ".join(
+            f"PARSE_JSON(src.{alias}) AS {self._quote_identifier(col)}"
+            if col in variant_cols
+            else f"src.{alias} AS {self._quote_identifier(col)}"
+            for alias, col in zip(value_aliases, columns)
+        )
+        return f"SELECT {select_exprs} FROM VALUES {values_clause} AS src({aliased_cols})"
+
+    def _execute_chunked_merge(
+        self,
+        cursor: snowflake.connector.cursor.SnowflakeCursor,
+        qualified_table: str,
+        columns: list[str],
+        prepared_rows: list[tuple[Any, ...]],
+        variant_cols: set[str],
+        primary_keys: list[str],
+        chunk_size: int = 500,
+    ) -> None:
+        """Execute chunked MERGE statements so keyed loads upsert efficiently."""
+        quoted_cols = ", ".join(self._quote_identifier(col) for col in columns)
+        source_cols = ", ".join(
+            f"source.{self._quote_identifier(col)}" for col in columns
+        )
+        on_clause = " AND ".join(
+            f"target.{self._quote_identifier(pk)} = source.{self._quote_identifier(pk)}"
+            for pk in primary_keys
+        )
+        update_cols = [col for col in columns if col not in primary_keys]
+        total_chunks = (len(prepared_rows) + chunk_size - 1) // chunk_size
+
+        for chunk_index, start in enumerate(range(0, len(prepared_rows), chunk_size), start=1):
+            chunk = prepared_rows[start:start + chunk_size]
+            flat_params = [value for row in chunk for value in row]
+            source_query = self._build_values_source_query(
+                columns=columns,
+                row_count=len(chunk),
+                variant_cols=variant_cols,
+            )
+
+            merge_query = (
+                f"MERGE INTO {qualified_table} AS target "
+                f"USING ({source_query}) AS source "
+                f"ON {on_clause} "
+            )
+            if update_cols:
+                set_clause = ", ".join(
+                    f"target.{self._quote_identifier(col)} = source.{self._quote_identifier(col)}"
+                    for col in update_cols
+                )
+                merge_query += f"WHEN MATCHED THEN UPDATE SET {set_clause} "
+            merge_query += (
+                f"WHEN NOT MATCHED THEN INSERT ({quoted_cols}) "
+                f"VALUES ({source_cols})"
+            )
+
+            cursor.execute(merge_query, flat_params)
+
+            if chunk_index == 1 or chunk_index == total_chunks or chunk_index % 10 == 0:
+                logging.info(
+                    "Merged chunk %s/%s into %s (%s rows).",
                     chunk_index,
                     total_chunks,
                     qualified_table,

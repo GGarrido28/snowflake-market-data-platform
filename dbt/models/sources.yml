@@ -39,10 +39,10 @@ sources:
             data_type: decimal string
       - name: market_orderbooks
         identifier: RAW_MARKET_ORDERBOOKS
-        description: Raw order book snapshots keyed by market id.
+        description: Raw order book snapshots keyed by market ticker.
         columns:
-          - name: market_id
-            description: Market identifier currently emitted by the scraper for orderbook snapshots. This is not yet standardized to market_ticker in the warehouse.
+          - name: market_ticker
+            description: Kalshi market ticker for the orderbook snapshot.
             data_type: string
           - name: orderbook
             description: JSON orderbook snapshot containing yes_dollars and no_dollars price ladders.

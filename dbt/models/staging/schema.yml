@@ -39,8 +39,8 @@ models:
   - name: stg_kalshi_market_orderbooks
     description: One-to-one staging view over the raw Kalshi market order books table.
     columns:
-      - name: market_id
-        description: Market identifier currently stored by the scraper for orderbook snapshots. This key is not yet standardized to market_ticker.
+      - name: market_ticker
+        description: Kalshi market ticker for the orderbook snapshot.
       - name: orderbook
         description: JSON orderbook snapshot containing yes_dollars and no_dollars bid ladders.
   - name: stg_kalshi_market_trades
