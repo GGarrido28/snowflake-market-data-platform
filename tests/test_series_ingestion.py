@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kalshi.markets.series import Series
+from snow_py import orchestration
 from snow_py.scraping.series import SeriesScraper
 
 
@@ -47,6 +48,32 @@ class SeriesPaginationTests(unittest.TestCase):
 
         mock_series_class.return_value.get_all_series.assert_called_once_with(all_pages=True)
         mock_store.assert_any_call([{"ticker": "KXTEST"}], "RAW_SERIES", ["ticker"])
+
+
+class OrchestrationTests(unittest.TestCase):
+    @patch("snow_py.orchestration.logging")
+    @patch("snow_py.orchestration.EventsScraper")
+    @patch("snow_py.orchestration.SeriesScraper")
+    @patch("snow_py.orchestration.MarketsScraper")
+    def test_run_all_scrapers_continues_after_constructor_failure(
+        self,
+        mock_markets_scraper,
+        mock_series_scraper,
+        mock_events_scraper,
+        mock_logging,
+    ):
+        mock_markets_scraper.side_effect = RuntimeError("markets init failed")
+        series_instance = mock_series_scraper.return_value
+        events_instance = mock_events_scraper.return_value
+
+        orchestration.run_all_scrapers()
+
+        mock_markets_scraper.assert_called_once_with()
+        mock_series_scraper.assert_called_once_with()
+        mock_events_scraper.assert_called_once_with()
+        series_instance.run.assert_called_once_with()
+        events_instance.run.assert_called_once_with()
+        mock_logging.error.assert_called_once()
 
 
 class StgKalshiSeriesContractTests(unittest.TestCase):
