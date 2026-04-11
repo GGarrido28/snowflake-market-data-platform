@@ -8,11 +8,11 @@ logging.basicConfig(level=logging.INFO)
 class MarketsScraper(Scraper):
     def __init__(self):
         super().__init__()
-                
+
     def run(self):
         '''Runs the scraper.'''
         logging.info("Starting scraper...")
-        
+
         # Markets
         try:
             markets = Markets()
@@ -26,7 +26,7 @@ class MarketsScraper(Scraper):
         finally:
             if self.snowflake_manager:
                 self.snowflake_manager.close()
-                
+
 if __name__ == "__main__":
     scrape = MarketsScraper()
     scrape.run()

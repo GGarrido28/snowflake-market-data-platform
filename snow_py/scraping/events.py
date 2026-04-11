@@ -8,11 +8,11 @@ logging.basicConfig(level=logging.INFO)
 class EventsScraper(Scraper):
     def __init__(self):
         super().__init__()
-                
+
     def run(self):
         '''Runs the scraper.'''
         logging.info("Starting scraper...")
-        
+
         # Events
         try:
             events = Events()
@@ -23,7 +23,7 @@ class EventsScraper(Scraper):
         finally:
             if self.snowflake_manager:
                 self.snowflake_manager.close()
-                
+
 if __name__ == "__main__":
     scrape = EventsScraper()
     scrape.run()

@@ -13,7 +13,7 @@ class Scraper(ABC):
     def run(self):
         '''Runs the scraper.'''
         pass
-    
+
     def _normalize_records(self, data: list) -> list[dict]:
         '''Flattens nested API responses into Snowflake-friendly row dictionaries.'''
         normalized: list[dict] = []

@@ -10,7 +10,7 @@ def run_all_scrapers():
         SeriesScraper(),
         EventsScraper()
     ]
-    
+
     for scraper in scrapers:
         scraper.run()
 
