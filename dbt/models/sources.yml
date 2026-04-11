@@ -22,8 +22,11 @@ sources:
           - name: title
             description: Human-readable market title.
             data_type: string
-          - name: subtitle
-            description: Secondary market label shown alongside the title.
+          - name: yes_sub_title
+            description: Yes-side label shown for the market outcome.
+            data_type: string
+          - name: no_sub_title
+            description: No-side label shown for the market outcome.
             data_type: string
           - name: created_time
             description: Market creation timestamp returned by the API.

@@ -9,6 +9,8 @@ models:
         tests:
           - not_null
           - unique
+      - name: market_title
+        description: Human-readable market title.
       - name: event_ticker
         description: Event identifier associated with the market.
       - name: category
@@ -17,6 +19,36 @@ models:
         description: Series identifier shared across related Kalshi events.
       - name: event_title
         description: Parent event title associated with the market.
+  - name: fct_market_orderbooks
+    description: Market-grain orderbook mart enriched with market and event metadata plus ladder depth counts.
+    columns:
+      - name: market_ticker
+        description: Stable Kalshi market identifier for the orderbook snapshot.
+        tests:
+          - not_null
+          - unique
+      - name: market_title
+        description: Human-readable market title.
+      - name: event_ticker
+        description: Event identifier associated with the market.
+      - name: category
+        description: Broad event category associated with the market through its parent event.
+      - name: series_ticker
+        description: Series identifier shared across related Kalshi events.
+      - name: event_title
+        description: Parent event title associated with the market.
+      - name: market_status
+        description: Current lifecycle status reported by Kalshi for the market.
+      - name: yes_level_count
+        description: Number of resting price levels currently present on the yes side of the orderbook.
+      - name: no_level_count
+        description: Number of resting price levels currently present on the no side of the orderbook.
+      - name: has_yes_orders
+        description: Whether the current orderbook snapshot contains any resting yes-side orders.
+      - name: has_no_orders
+        description: Whether the current orderbook snapshot contains any resting no-side orders.
+      - name: orderbook
+        description: Raw nested orderbook payload keyed by yes_dollars and no_dollars ladders.
   - name: dim_kalshi_categories
     description: Distinct category dimension covering all Kalshi event categories.
     columns:

@@ -12,7 +12,7 @@ select
     "status" as market_status,
     "result" as market_result,
     "title" as market_title,
-    "subtitle" as market_subtitle,
+    cast(null as varchar) as market_subtitle,
     "yes_sub_title" as yes_subtitle,
     "no_sub_title" as no_subtitle,
     "rules_primary" as primary_rules,
@@ -32,7 +32,7 @@ select
     try_to_timestamp_ntz("expiration_time") as expiration_at,
     try_to_timestamp_ntz("latest_expiration_time") as latest_expiration_at,
     try_to_timestamp_ntz("updated_time") as updated_at,
-    try_to_timestamp_ntz("fee_waiver_expiration_time") as fee_waiver_expiration_at,
+    cast(null as timestamp_ntz) as fee_waiver_expiration_at,
     try_to_decimal("last_price_dollars", 18, 4) as last_price_dollars,
     try_to_decimal("liquidity_dollars", 18, 4) as liquidity_dollars,
     try_to_decimal("no_ask_dollars", 18, 4) as no_ask_dollars,
@@ -50,8 +50,8 @@ select
     try_to_decimal("yes_bid_size_fp", 38, 6) as yes_bid_size_fp,
     "settlement_timer_seconds" as settlement_timer_seconds,
     "tick_size" as tick_size,
-    "floor_strike" as floor_strike,
-    "cap_strike" as cap_strike,
+    cast(null as varchar) as floor_strike,
+    cast(null as varchar) as cap_strike,
     "custom_strike" as custom_strike,
     "price_ranges" as price_ranges
 from source
