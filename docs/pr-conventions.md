@@ -2,39 +2,44 @@
 
 This page documents the branch naming, PR title, and label conventions used in this repository.
 
-## Branch prefixes
+## Branch and title prefixes
 
-Use these prefixes in branch names to indicate the purpose of the PR.
+Use the same semantic family for both the branch name and the PR title.
 
-| Prefix | Purpose | Example |
-| --- | --- | --- |
-| `feat/` or `feature/` | New feature | `feat/game-sets-scraper` |
-| `fix/` or `bugfix/` | Bug fix | `fix/login-timeout` |
-| `hotfix/` | Urgent production fix | `hotfix/critical-auth-bug` |
-| `chore/` | Maintenance, dependencies, config | `chore/update-dependencies` |
-| `refactor/` | Code refactoring without new features | `refactor/cleanup-scrapers` |
-| `docs/` | Documentation only | `docs/update-readme` |
-| `test/` | Adding or updating tests | `test/add-payout-tests` |
-| `style/` | Formatting or linting only | `style/fix-linting` |
-| `perf/` | Performance improvements | `perf/optimize-batch-requests` |
-| `ci/` | CI or automation changes | `ci/add-github-actions` |
-| `build/` | Build system changes | `build/update-webpack` |
-| `revert/` | Reverting a previous commit | `revert/feat-broken-feature` |
-| `release/` | Release preparation | `release/v3.0.0` |
-| `wip/` | Work in progress | `wip/experimental-api` |
+Format:
 
-## PR title format
+- branch: `<prefix>/<short-kebab-summary>`
+- PR title: `<prefix>: <concise imperative summary>`
 
-Use a matching semantic prefix in the PR title:
+Prefer the short canonical prefixes in PR titles. Where aliases exist for branch names, normalize the PR title to the short form.
 
-- `feat: add market lineage checks`
-- `fix: repair series pagination`
-- `docs: add pr conventions`
+| Canonical prefix | Branch aliases | Purpose | Branch example | PR title example |
+| --- | --- | --- | --- | --- |
+| `feat` | `feat`, `feature` | New feature | `feat/game-sets-scraper` | `feat: add game sets scraper` |
+| `fix` | `fix`, `bugfix` | Bug fix | `fix/login-timeout` | `fix: repair login timeout` |
+| `hotfix` | `hotfix` | Urgent production fix | `hotfix/critical-auth-bug` | `hotfix: repair critical auth bug` |
+| `chore` | `chore` | Maintenance, dependencies, config | `chore/update-dependencies` | `chore: update dependencies` |
+| `refactor` | `refactor` | Refactoring without new behavior | `refactor/cleanup-scrapers` | `refactor: clean up scrapers` |
+| `docs` | `docs` | Documentation only | `docs/update-readme` | `docs: update readme` |
+| `test` | `test` | Test-only changes | `test/add-payout-tests` | `test: add payout tests` |
+| `style` | `style` | Formatting or linting only | `style/fix-linting` | `style: fix linting` |
+| `perf` | `perf` | Performance improvements | `perf/optimize-batch-requests` | `perf: optimize batch requests` |
+| `ci` | `ci` | CI or automation changes | `ci/add-github-actions` | `ci: add github actions` |
+| `build` | `build` | Build system changes | `build/update-webpack` | `build: update webpack` |
+| `revert` | `revert` | Reverting a previous change | `revert/feat-broken-feature` | `revert: revert broken feature` |
+| `release` | `release` | Release preparation | `release/v3-0-0` | `release: prepare v3.0.0` |
+| `wip` | `wip` | Work in progress | `wip/experimental-api` | `wip: experimental api` |
 
 ## Labels
+
+Inspect the repo's actual labels before applying them.
 
 Use the closest available repo labels for the change:
 
 - Documentation-only change -> `documentation`
 - Feature, refactor, test, build, perf, or chore change -> `enhancement`
 - Bug fix or hotfix -> `bug`
+
+## Note
+
+The public skill mirror under `ai/skills/code-change-pr-workflow/` should stay aligned with this page when conventions change.
