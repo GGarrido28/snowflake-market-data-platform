@@ -1,15 +1,18 @@
 import logging
 
-from kalshi.markets import Markets
-from kalshi.markets import Series
-from kalshi.events import Events
+from abc import ABC, abstractmethod
 from snow_py.connection import SnowflakeManager
 
 logging.basicConfig(level=logging.INFO)
 
-class Scraper:
+class Scraper(ABC):
     def __init__(self):
         self.snowflake_manager = SnowflakeManager("PROD", "RAW")
+
+    @abstractmethod
+    def run(self):
+        '''Runs the scraper.'''
+        pass
 
     def _normalize_records(self, data: list) -> list[dict]:
         '''Flattens nested API responses into Snowflake-friendly row dictionaries.'''
@@ -61,41 +64,3 @@ class Scraper:
             )
             if not success:
                 logging.error(f"Failed to insert rows: {log}")
-                
-    def run(self):
-        '''Runs the scraper.'''
-        logging.info("Starting scraper...")
-        
-        # Events
-        try:
-            events = Events()
-            event_data = events.get_all_events(all_pages=True, status='open')
-            self.store_data_in_snowflake(event_data, "RAW_EVENTS", ["event_ticker"])
-        except Exception as e:
-            logging.error(f"Error fetching events data: {e}")
-        
-        # Series
-        try:
-            series = Series()
-            series_data = series.get_all_series(all_pages=True)
-            self.store_data_in_snowflake(series_data, "RAW_SERIES", ["ticker"])
-        except Exception as e:
-            logging.error(f"Error fetching series data: {e}")
-
-        # Markets
-        try:
-            markets = Markets()
-            market_data = markets.get_market_endpoints()
-            self.store_data_in_snowflake(market_data["markets"], "RAW_MARKETS", ["ticker"])
-            self.store_data_in_snowflake(market_data["orderbook"], "RAW_MARKET_ORDERBOOKS", ["market_id"])
-            self.store_data_in_snowflake(market_data["trades"], "RAW_MARKET_TRADES", ["trade_id"])
-            logging.info("Scraper finished.")
-        except Exception as e:
-            logging.error(f"Error running scraper: {e}")
-        finally:
-            if self.snowflake_manager:
-                self.snowflake_manager.close()
-                
-if __name__ == "__main__":
-    scrape = Scraper()
-    scrape.run()

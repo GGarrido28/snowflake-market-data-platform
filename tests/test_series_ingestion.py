@@ -4,7 +4,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from kalshi.markets.series import Series
-from snow_py.scraping.base import Scraper
+from snow_py import orchestration
+from snow_py.scraping.series import SeriesScraper
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -32,31 +33,47 @@ class SeriesPaginationTests(unittest.TestCase):
             category="economics",
         )
 
-    @patch("snow_py.scraping.base.SnowflakeManager")
-    @patch("snow_py.scraping.base.Markets")
-    @patch("snow_py.scraping.base.Events")
-    @patch("snow_py.scraping.base.Series")
+    @patch("snow_py.base.SnowflakeManager")
+    @patch("snow_py.scraping.series.Series")
     def test_scraper_loads_all_series_pages(
         self,
         mock_series_class,
-        mock_events_class,
-        mock_markets_class,
         _mock_snowflake_manager,
     ):
-        mock_events_class.return_value.get_all_events.return_value = []
-        mock_markets_class.return_value.get_market_endpoints.return_value = {
-            "markets": [],
-            "orderbook": [],
-            "trades": [],
-        }
         mock_series_class.return_value.get_all_series.return_value = [{"ticker": "KXTEST"}]
 
-        scraper = Scraper()
+        scraper = SeriesScraper()
         with patch.object(scraper, "store_data_in_snowflake") as mock_store:
             scraper.run()
 
         mock_series_class.return_value.get_all_series.assert_called_once_with(all_pages=True)
         mock_store.assert_any_call([{"ticker": "KXTEST"}], "RAW_SERIES", ["ticker"])
+
+
+class OrchestrationTests(unittest.TestCase):
+    @patch("snow_py.orchestration.logging")
+    @patch("snow_py.orchestration.EventsScraper")
+    @patch("snow_py.orchestration.SeriesScraper")
+    @patch("snow_py.orchestration.MarketsScraper")
+    def test_run_all_scrapers_continues_after_constructor_failure(
+        self,
+        mock_markets_scraper,
+        mock_series_scraper,
+        mock_events_scraper,
+        mock_logging,
+    ):
+        mock_markets_scraper.side_effect = RuntimeError("markets init failed")
+        series_instance = mock_series_scraper.return_value
+        events_instance = mock_events_scraper.return_value
+
+        orchestration.run_all_scrapers()
+
+        mock_markets_scraper.assert_called_once_with()
+        mock_series_scraper.assert_called_once_with()
+        mock_events_scraper.assert_called_once_with()
+        series_instance.run.assert_called_once_with()
+        events_instance.run.assert_called_once_with()
+        mock_logging.error.assert_called_once()
 
 
 class StgKalshiSeriesContractTests(unittest.TestCase):
