@@ -55,11 +55,6 @@ class MarketsScraper(Scraper):
                 len(market_rows),
             )
             detail_data = markets.get_market_details(market_rows)
-            self._recreate_table_if_schema_changed(
-                "RAW_MARKET_ORDERBOOKS",
-                detail_data["orderbook"],
-                ["market_ticker"],
-            )
             self.store_data_in_snowflake(detail_data["orderbook"], "RAW_MARKET_ORDERBOOKS", ["market_ticker"])
             self.store_data_in_snowflake(detail_data["trades"], "RAW_MARKET_TRADES", ["trade_id"])
             logging.info("Scraper finished.")
