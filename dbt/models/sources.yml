@@ -22,6 +22,9 @@ sources:
           - name: title
             description: Human-readable market title.
             data_type: string
+          - name: subtitle
+            description: Secondary market label shown alongside the title when present in the landed raw payload.
+            data_type: string
           - name: yes_sub_title
             description: Yes-side label shown for the market outcome.
             data_type: string

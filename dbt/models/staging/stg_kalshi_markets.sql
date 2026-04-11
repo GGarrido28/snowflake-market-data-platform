@@ -1,8 +1,12 @@
 {{ config(materialized='table') }}
 
+{% set raw_markets_relation = source('kalshi_raw', 'markets') %}
+{% set raw_markets_columns = adapter.get_columns_in_relation(raw_markets_relation) %}
+{% set raw_markets_column_names = raw_markets_columns | map(attribute='name') | map('lower') | list %}
+
 with source as (
     select *
-    from {{ source('kalshi_raw', 'markets') }}
+    from {{ raw_markets_relation }}
 )
 
 select
@@ -12,7 +16,11 @@ select
     "status" as market_status,
     "result" as market_result,
     "title" as market_title,
-    cast(null as varchar) as market_subtitle,
+    {% if 'subtitle' in raw_markets_column_names %}
+    "subtitle" as market_subtitle,
+    {% else %}
+    iff("yes_sub_title" = "no_sub_title", "yes_sub_title", cast(null as varchar)) as market_subtitle,
+    {% endif %}
     "yes_sub_title" as yes_subtitle,
     "no_sub_title" as no_subtitle,
     "rules_primary" as primary_rules,
@@ -32,7 +40,11 @@ select
     try_to_timestamp_ntz("expiration_time") as expiration_at,
     try_to_timestamp_ntz("latest_expiration_time") as latest_expiration_at,
     try_to_timestamp_ntz("updated_time") as updated_at,
+    {% if 'fee_waiver_expiration_time' in raw_markets_column_names %}
+    try_to_timestamp_ntz("fee_waiver_expiration_time") as fee_waiver_expiration_at,
+    {% else %}
     cast(null as timestamp_ntz) as fee_waiver_expiration_at,
+    {% endif %}
     try_to_decimal("last_price_dollars", 18, 4) as last_price_dollars,
     try_to_decimal("liquidity_dollars", 18, 4) as liquidity_dollars,
     try_to_decimal("no_ask_dollars", 18, 4) as no_ask_dollars,
@@ -50,8 +62,16 @@ select
     try_to_decimal("yes_bid_size_fp", 38, 6) as yes_bid_size_fp,
     "settlement_timer_seconds" as settlement_timer_seconds,
     "tick_size" as tick_size,
-    cast(null as varchar) as floor_strike,
-    cast(null as varchar) as cap_strike,
+    {% if 'floor_strike' in raw_markets_column_names %}
+    try_to_decimal("floor_strike", 18, 4) as floor_strike,
+    {% else %}
+    cast(null as number(18, 4)) as floor_strike,
+    {% endif %}
+    {% if 'cap_strike' in raw_markets_column_names %}
+    try_to_decimal("cap_strike", 18, 4) as cap_strike,
+    {% else %}
+    cast(null as number(18, 4)) as cap_strike,
+    {% endif %}
     "custom_strike" as custom_strike,
     "price_ranges" as price_ranges
 from source
