@@ -9,16 +9,122 @@ sources:
       - name: markets
         identifier: RAW_MARKETS
         description: Raw market-level payloads from the Kalshi API.
+        columns:
+          - name: ticker
+            description: Stable Kalshi market ticker; the primary join key from markets to downstream trades.
+            data_type: string
+          - name: event_ticker
+            description: Parent event identifier used to join markets back to events.
+            data_type: string
+          - name: status
+            description: Current market lifecycle status returned by the API.
+            data_type: string
+          - name: title
+            description: Human-readable market title.
+            data_type: string
+          - name: subtitle
+            description: Secondary market label shown alongside the title.
+            data_type: string
+          - name: created_time
+            description: Market creation timestamp returned by the API.
+            data_type: timestamp string
+          - name: updated_time
+            description: Most recent market metadata update timestamp returned by the API.
+            data_type: timestamp string
+          - name: last_price_dollars
+            description: Last traded market price in dollar-denominated string form.
+            data_type: decimal string
+          - name: volume_fp
+            description: Fixed-point total traded volume for the market.
+            data_type: decimal string
       - name: market_orderbooks
         identifier: RAW_MARKET_ORDERBOOKS
         description: Raw order book snapshots keyed by market id.
+        columns:
+          - name: market_id
+            description: Market identifier currently emitted by the scraper for orderbook snapshots. This is not yet standardized to market_ticker in the warehouse.
+            data_type: string
+          - name: orderbook
+            description: JSON orderbook snapshot containing yes_dollars and no_dollars price ladders.
+            data_type: object
       - name: market_trades
         identifier: RAW_MARKET_TRADES
         description: Raw trade-level payloads from the Kalshi API.
+        columns:
+          - name: trade_id
+            description: Stable Kalshi trade identifier.
+            data_type: string
+          - name: ticker
+            description: Market ticker for the traded market.
+            data_type: string
+          - name: count_fp
+            description: Fixed-point trade size returned by the API.
+            data_type: decimal string
+          - name: yes_price_dollars
+            description: Yes-side execution price in dollar-denominated string form.
+            data_type: decimal string
+          - name: no_price_dollars
+            description: No-side execution price in dollar-denominated string form.
+            data_type: decimal string
+          - name: taker_side
+            description: Side of the aggressing order for the trade.
+            data_type: string
+          - name: created_time
+            description: Trade execution timestamp returned by the API.
+            data_type: timestamp string
       - name: events
         identifier: RAW_EVENTS
         description: Raw event-level payloads from the Kalshi API.
+        columns:
+          - name: event_ticker
+            description: Stable Kalshi event ticker; the primary join key from events to markets.
+            data_type: string
+          - name: series_ticker
+            description: Parent series identifier used to join events back to series.
+            data_type: string
+          - name: category
+            description: Broad topic grouping assigned by Kalshi.
+            data_type: string
+          - name: title
+            description: Human-readable event title.
+            data_type: string
+          - name: sub_title
+            description: Secondary event label shown alongside the title.
+            data_type: string
+          - name: last_updated_ts
+            description: Most recent event metadata update timestamp returned by the API.
+            data_type: timestamp string
+          - name: product_metadata
+            description: Nested JSON metadata returned for product-specific event details.
+            data_type: object
       - name: series
         identifier: RAW_SERIES
         description: Raw series-level payloads from the Kalshi API.
-        
+        columns:
+          - name: ticker
+            description: Stable Kalshi series ticker; the primary join key from series to events.
+            data_type: string
+          - name: category
+            description: Broad category used to group related recurring event templates.
+            data_type: string
+          - name: title
+            description: Human-readable series title.
+            data_type: string
+          - name: tags
+            description: List of Kalshi-provided tags attached to the series.
+            data_type: array<string>
+          - name: frequency
+            description: Recurrence cadence for events in the series.
+            data_type: string
+          - name: fee_type
+            description: Fee model applied to contracts in the series.
+            data_type: string
+          - name: fee_multiplier
+            description: Numeric multiplier used in Kalshi fee calculations.
+            data_type: integer
+          - name: volume_fp
+            description: Optional fixed-point total traded volume across all events in the series when requested from the API.
+            data_type: decimal string
+          - name: last_updated_ts
+            description: Most recent series metadata update timestamp returned by the API.
+            data_type: timestamp string

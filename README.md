@@ -10,6 +10,7 @@ For my personal use, this project serves as a practical application of data engi
 - `kalshi`: Contains the main code for data scraping from Kalshi API.
 - `snow_py`: Contains the code for data collection, modeling, transformation, and analysis in Snowflake.
 - `dbt`: Local dbt project for Snowflake transformations and analytics models.
+- `docs`: Lightweight project documentation, including a Kalshi entity map and join-key cheat sheet.
 - `README.md`: This file, providing an overview of the project and its purpose.
 
 # Tech Stack
@@ -94,3 +95,6 @@ The scaffold assumes you land raw Kalshi tables in Snowflake with the current Py
 - `int_kalshi_markets` gives you a clean starting relation for downstream marts
 
 If your physical raw table names or schema differ, update [`dbt/models/sources.yml`](./dbt/models/sources.yml).
+
+## Entity Map
+If you need a quick reminder of how Kalshi objects connect, see [`docs/kalshi_entity_map.md`](./docs/kalshi_entity_map.md).
