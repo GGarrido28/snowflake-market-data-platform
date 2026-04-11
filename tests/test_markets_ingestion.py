@@ -143,13 +143,13 @@ class MarketsScraperTests(unittest.TestCase):
             }
         }
         snowflake_manager.create_table.return_value = True
+        snowflake_manager.insert_rows.return_value = (True, None)
 
         scraper = MarketsScraper()
-        with patch.object(scraper, "store_data_in_snowflake"):
-            with patch.object(scraper, "_get_market_scope", return_value=(None, "EVT")):
-                scraper.run()
+        with patch.object(scraper, "_get_market_scope", return_value=(None, "EVT")):
+            scraper.run()
 
-        snowflake_manager.create_table.assert_called_once_with(
+        snowflake_manager.create_table.assert_any_call(
             dict_list=orderbook_rows,
             primary_keys=["market_ticker"],
             table_name="RAW_MARKET_ORDERBOOKS",

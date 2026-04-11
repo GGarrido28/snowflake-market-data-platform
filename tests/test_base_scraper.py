@@ -11,9 +11,49 @@ class DummyScraper(Scraper):
 
 class ScraperStorageTests(unittest.TestCase):
     @patch("snow_py.base.SnowflakeManager")
+    def test_store_data_in_snowflake_recreates_existing_table_when_schema_changes(self, mock_snowflake_manager):
+        manager = mock_snowflake_manager.return_value
+        manager.check_table_exists.return_value = True
+        manager.get_tables.return_value = {
+            "raw_events": {
+                "event_ticker": "TEXT",
+            }
+        }
+        manager.create_table.return_value = True
+        manager.insert_rows.return_value = (True, None)
+
+        scraper = DummyScraper()
+        scraper.store_data_in_snowflake(
+            [{"event_ticker": "KXTEST-25", "title": "Test Event"}],
+            "RAW_EVENTS",
+            ["event_ticker"],
+        )
+
+        manager.create_table.assert_called_once_with(
+            dict_list=[{"event_ticker": "KXTEST-25", "title": "Test Event"}],
+            primary_keys=["event_ticker"],
+            table_name="RAW_EVENTS",
+            delete=True,
+        )
+        manager.insert_rows.assert_called_once_with(
+            target_table="RAW_EVENTS",
+            columns=["event_ticker", "title"],
+            rows=[{"event_ticker": "KXTEST-25", "title": "Test Event"}],
+            contains_dicts=True,
+            update=True,
+            return_error_msg=True,
+        )
+
+    @patch("snow_py.base.SnowflakeManager")
     def test_store_data_in_snowflake_uses_upsert_for_existing_keyed_tables(self, mock_snowflake_manager):
         manager = mock_snowflake_manager.return_value
         manager.check_table_exists.return_value = True
+        manager.get_tables.return_value = {
+            "raw_events": {
+                "event_ticker": "TEXT",
+                "title": "TEXT",
+            }
+        }
         manager.insert_rows.return_value = (True, None)
 
         scraper = DummyScraper()
@@ -65,6 +105,11 @@ class ScraperStorageTests(unittest.TestCase):
     def test_store_data_in_snowflake_keeps_non_keyed_loads_insert_only(self, mock_snowflake_manager):
         manager = mock_snowflake_manager.return_value
         manager.check_table_exists.return_value = True
+        manager.get_tables.return_value = {
+            "raw_misc": {
+                "name": "TEXT",
+            }
+        }
         manager.insert_rows.return_value = (True, None)
 
         scraper = DummyScraper()

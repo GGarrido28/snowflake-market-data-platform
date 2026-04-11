@@ -24,6 +24,38 @@ class Scraper(ABC):
                 normalized.extend(row for row in item if isinstance(row, dict))
         return normalized
 
+    def _recreate_table_if_schema_changed(
+        self,
+        data: list[dict],
+        table_name: str,
+        primary_keys: list[str],
+    ) -> None:
+        '''Rebuilds a raw table when the incoming schema no longer matches the existing Snowflake table.'''
+        if not data or not self.snowflake_manager or not self.snowflake_manager.check_table_exists(table_name):
+            return
+
+        tables = self.snowflake_manager.get_tables()
+        existing_columns = set(tables.get(table_name.lower(), {}).keys())
+        incoming_columns = {column for row in data for column in row.keys()}
+
+        if not existing_columns or existing_columns == incoming_columns:
+            return
+
+        logging.info(
+            "%s schema changed from %s to %s; recreating table.",
+            table_name,
+            sorted(existing_columns),
+            sorted(incoming_columns),
+        )
+        created = self.snowflake_manager.create_table(
+            dict_list=data,
+            primary_keys=primary_keys,
+            table_name=table_name,
+            delete=True,
+        )
+        if created is not True:
+            raise RuntimeError(f"Could not recreate {table_name} with the updated schema.")
+
     def store_data_in_snowflake(self, data: list, table_name: str, primary_keys: list | None = None):
         '''Stores a list of dictionaries in a Snowflake table.'''
         normalized_data = self._normalize_records(data)
@@ -35,6 +67,8 @@ class Scraper(ABC):
         if primary_keys is None:
             primary_keys = []
         should_upsert = bool(primary_keys)
+
+        self._recreate_table_if_schema_changed(normalized_data, table_name, primary_keys)
 
         if self.snowflake_manager.check_table_exists(table_name):
             success, log = self.snowflake_manager.insert_rows(
