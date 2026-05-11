@@ -21,6 +21,10 @@ select
     {{ optional_string(raw_markets_column_names, 'market_type', 'market_type') }},
     {{ optional_string(raw_markets_column_names, 'status', 'market_status') }},
     {{ optional_string(raw_markets_column_names, 'result', 'market_result') }},
+    {# Prefer the explicit `subtitle` field when present; otherwise derive from the
+       yes/no sides (Kalshi binary markets often share a subtitle across both sides).
+       If neither shape is available the subtitle silently becomes NULL rather than
+       failing the build — same defensive philosophy as the rest of this model. #}
     {% if 'subtitle' in raw_markets_column_names %}
     "subtitle" as market_subtitle,
     {% elif 'yes_sub_title' in raw_markets_column_names and 'no_sub_title' in raw_markets_column_names %}
@@ -38,8 +42,8 @@ select
     {{ optional_string(raw_markets_column_names, 'expiration_value', 'expiration_value') }},
     {{ optional_string(raw_markets_column_names, 'early_close_condition', 'early_close_condition') }},
     {{ optional_string(raw_markets_column_names, 'primary_participant_key', 'primary_participant_key') }},
-    {{ optional_string(raw_markets_column_names, 'can_close_early', 'can_close_early') }},
-    {{ optional_string(raw_markets_column_names, 'fractional_trading_enabled', 'is_fractional_trading_enabled') }},
+    {{ optional_boolean(raw_markets_column_names, 'can_close_early', 'can_close_early') }},
+    {{ optional_boolean(raw_markets_column_names, 'fractional_trading_enabled', 'is_fractional_trading_enabled') }},
     {{ optional_timestamp(raw_markets_column_names, 'created_time', 'created_at') }},
     {{ optional_timestamp(raw_markets_column_names, 'open_time', 'open_at') }},
     {{ optional_timestamp(raw_markets_column_names, 'close_time', 'close_at') }},
@@ -63,7 +67,7 @@ select
     {{ optional_decimal(raw_markets_column_names, 'volume_fp', 'volume_fp', 38, 6) }},
     {{ optional_decimal(raw_markets_column_names, 'yes_ask_size_fp', 'yes_ask_size_fp', 38, 6) }},
     {{ optional_decimal(raw_markets_column_names, 'yes_bid_size_fp', 'yes_bid_size_fp', 38, 6) }},
-    {{ optional_string(raw_markets_column_names, 'settlement_timer_seconds', 'settlement_timer_seconds') }},
+    {{ optional_integer(raw_markets_column_names, 'settlement_timer_seconds', 'settlement_timer_seconds') }},
     {{ optional_string(raw_markets_column_names, 'tick_size', 'tick_size') }},
     {{ optional_decimal(raw_markets_column_names, 'floor_strike', 'floor_strike', 18, 4) }},
     {{ optional_decimal(raw_markets_column_names, 'cap_strike', 'cap_strike', 18, 4) }},
