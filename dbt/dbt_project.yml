@@ -2,6 +2,8 @@ name: snowflake_market_data_platform
 version: 1.0.0
 config-version: 2
 
+# This setting configures which "profile" dbt uses for this project. 
+# Profile configurations are stored in the profiles.yml file.
 profile: snowflake_market_data_platform
 
 model-paths:

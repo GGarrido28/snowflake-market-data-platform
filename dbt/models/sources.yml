@@ -16,14 +16,20 @@ sources:
           - name: event_ticker
             description: Parent event identifier used to join markets back to events.
             data_type: string
+          - name: market_type
+            description: Kalshi-assigned market type (e.g. binary, scalar).
+            data_type: string
           - name: status
             description: Current market lifecycle status returned by the API.
+            data_type: string
+          - name: result
+            description: Settled market outcome once the market resolves.
             data_type: string
           - name: title
             description: Human-readable market title.
             data_type: string
           - name: subtitle
-            description: Secondary market label shown alongside the title when present in the landed raw payload.
+            description: Secondary market label shown alongside the title; staging falls back to yes_sub_title/no_sub_title when the column is absent from the raw payload.
             data_type: string
           - name: yes_sub_title
             description: Yes-side label shown for the market outcome.
@@ -31,18 +37,123 @@ sources:
           - name: no_sub_title
             description: No-side label shown for the market outcome.
             data_type: string
+          - name: rules_primary
+            description: Primary market resolution rules text.
+            data_type: string
+          - name: rules_secondary
+            description: Supplementary market resolution rules text.
+            data_type: string
+          - name: response_price_units
+            description: Unit system the API uses to report market prices (e.g. cents, dollars).
+            data_type: string
+          - name: price_level_structure
+            description: Description of how price levels are bucketed for the market.
+            data_type: string
+          - name: strike_type
+            description: Strike configuration assigned to the market (e.g. single, range).
+            data_type: string
+          - name: expiration_value
+            description: Strike expiration value used in market resolution logic.
+            data_type: string
+          - name: early_close_condition
+            description: Condition under which the market can close early.
+            data_type: string
+          - name: primary_participant_key
+            description: Key identifying the primary participant associated with the market.
+            data_type: string
+          - name: can_close_early
+            description: Boolean flag indicating whether the market can close early.
+            data_type: boolean
+          - name: fractional_trading_enabled
+            description: Boolean flag indicating whether fractional trading is enabled for the market.
+            data_type: boolean
           - name: created_time
             description: Market creation timestamp returned by the API.
+            data_type: timestamp string
+          - name: open_time
+            description: Market open timestamp returned by the API.
+            data_type: timestamp string
+          - name: close_time
+            description: Market scheduled close timestamp returned by the API.
+            data_type: timestamp string
+          - name: expected_expiration_time
+            description: Expected expiration timestamp returned by the API.
+            data_type: timestamp string
+          - name: expiration_time
+            description: Realized expiration timestamp returned by the API.
+            data_type: timestamp string
+          - name: latest_expiration_time
+            description: Latest possible expiration timestamp returned by the API.
             data_type: timestamp string
           - name: updated_time
             description: Most recent market metadata update timestamp returned by the API.
             data_type: timestamp string
+          - name: fee_waiver_expiration_time
+            description: Timestamp when the fee waiver on the market expires; staging tolerates the column being absent from the raw payload.
+            data_type: timestamp string
           - name: last_price_dollars
             description: Last traded market price in dollar-denominated string form.
+            data_type: decimal string
+          - name: liquidity_dollars
+            description: Reported market liquidity in dollar-denominated string form.
+            data_type: decimal string
+          - name: no_ask_dollars
+            description: Current no-side ask price in dollar-denominated string form.
+            data_type: decimal string
+          - name: no_bid_dollars
+            description: Current no-side bid price in dollar-denominated string form.
+            data_type: decimal string
+          - name: notional_value_dollars
+            description: Notional contract value in dollar-denominated string form.
+            data_type: decimal string
+          - name: previous_price_dollars
+            description: Prior market price snapshot in dollar-denominated string form.
+            data_type: decimal string
+          - name: previous_yes_ask_dollars
+            description: Prior yes-side ask price snapshot in dollar-denominated string form.
+            data_type: decimal string
+          - name: previous_yes_bid_dollars
+            description: Prior yes-side bid price snapshot in dollar-denominated string form.
+            data_type: decimal string
+          - name: yes_ask_dollars
+            description: Current yes-side ask price in dollar-denominated string form.
+            data_type: decimal string
+          - name: yes_bid_dollars
+            description: Current yes-side bid price in dollar-denominated string form.
+            data_type: decimal string
+          - name: open_interest_fp
+            description: Fixed-point open interest reported for the market.
+            data_type: decimal string
+          - name: volume_24h_fp
+            description: Fixed-point trailing 24-hour traded volume for the market.
             data_type: decimal string
           - name: volume_fp
             description: Fixed-point total traded volume for the market.
             data_type: decimal string
+          - name: yes_ask_size_fp
+            description: Fixed-point size at the top of the yes-side ask.
+            data_type: decimal string
+          - name: yes_bid_size_fp
+            description: Fixed-point size at the top of the yes-side bid.
+            data_type: decimal string
+          - name: settlement_timer_seconds
+            description: Settlement timer countdown for the market, in seconds.
+            data_type: integer
+          - name: tick_size
+            description: Minimum price increment for orders on the market.
+            data_type: decimal string
+          - name: floor_strike
+            description: Lower strike bound for ranged markets; staging tolerates the column being absent from the raw payload.
+            data_type: decimal string
+          - name: cap_strike
+            description: Upper strike bound for ranged markets; staging tolerates the column being absent from the raw payload.
+            data_type: decimal string
+          - name: custom_strike
+            description: Custom strike payload for non-standard market structures.
+            data_type: object
+          - name: price_ranges
+            description: Nested payload describing price-range buckets used for scalar markets.
+            data_type: object
       - name: market_orderbooks
         identifier: RAW_MARKET_ORDERBOOKS
         description: Raw order book snapshots keyed by market ticker.
@@ -97,6 +208,15 @@ sources:
           - name: sub_title
             description: Secondary event label shown alongside the title.
             data_type: string
+          - name: available_on_brokers
+            description: Boolean flag indicating whether the event is available through partnered brokers.
+            data_type: boolean
+          - name: mutually_exclusive
+            description: Boolean flag indicating whether the event's markets are mutually exclusive outcomes.
+            data_type: boolean
+          - name: collateral_return_type
+            description: Collateral return policy applied to the event's markets.
+            data_type: string
           - name: last_updated_ts
             description: Most recent event metadata update timestamp returned by the API.
             data_type: timestamp string
@@ -128,9 +248,6 @@ sources:
           - name: fee_multiplier
             description: Numeric multiplier used in Kalshi fee calculations.
             data_type: integer
-          - name: volume_fp
-            description: Optional fixed-point total traded volume across all events in the series when requested from the API.
-            data_type: decimal string
           - name: last_updated_ts
             description: Most recent series metadata update timestamp returned by the API.
             data_type: timestamp string
