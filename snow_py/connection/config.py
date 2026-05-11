@@ -10,7 +10,8 @@ if _env_path.exists():
 SNOWFLAKE_CONFIG = {
     "account": os.environ.get("SNOWFLAKE_ACCOUNT"),
     "user": os.environ.get("SNOWFLAKE_USER"),
-    "password": os.environ.get("SNOWFLAKE_PASSWORD"),
+    "private_key_path": os.environ.get("SNOWFLAKE_PRIVATE_KEY_PATH"),
+    "private_key_passphrase": os.environ.get("SNOWFLAKE_PRIVATE_KEY_PASSPHRASE"),
     "warehouse": os.environ.get("SNOWFLAKE_WAREHOUSE"),
     "role": os.environ.get("SNOWFLAKE_ROLE"),
 }
