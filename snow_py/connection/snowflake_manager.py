@@ -5,9 +5,13 @@ import logging
 import json
 import re
 from datetime import datetime, date, time
+from pathlib import Path
 from uuid import UUID
 from time import sleep
 from typing import Any, Sequence
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 
 from snow_py.connection.config import SNOWFLAKE_CONFIG
 
@@ -76,18 +80,22 @@ class SnowflakeManager:
         # Validate essential connection parameters
         self.account: str | None = SNOWFLAKE_CONFIG.get("account")
         self.user: str | None = SNOWFLAKE_CONFIG.get("user")
-        self.password: str | None = SNOWFLAKE_CONFIG.get("password")
+        self.private_key_path: str | None = SNOWFLAKE_CONFIG.get("private_key_path")
+        self.private_key_passphrase: str | None = SNOWFLAKE_CONFIG.get("private_key_passphrase")
 
         for param_name, param_value in [
             ("account", self.account),
             ("user", self.user),
-            ("password", self.password),
+            ("private_key_path", self.private_key_path),
         ]:
             if not param_value:
+                env_var = f"SNOWFLAKE_{param_name.upper()}"
                 raise ValueError(
                     f"Required connection parameter '{param_name}' is missing. "
-                    f"Set the SNOWFLAKE_{param_name.upper()} environment variable."
+                    f"Set the {env_var} environment variable."
                 )
+
+        self._private_key_bytes: bytes = self._load_private_key()
 
         self.connect_with_retries()
 
@@ -95,6 +103,31 @@ class SnowflakeManager:
             logging.info(f"Connected to Snowflake: {self.account}")
             logging.info(f"Database: {self.database}, Schema: {self.schema}")
             logging.info(f"Warehouse: {self.warehouse}, Role: {self.role}")
+
+    def _load_private_key(self) -> bytes:
+        """Load and serialize the RSA private key for Snowflake key-pair auth."""
+        key_path = Path(self.private_key_path).expanduser()
+        if not key_path.exists():
+            raise FileNotFoundError(
+                f"Snowflake private key not found at {key_path}. "
+                "Set SNOWFLAKE_PRIVATE_KEY_PATH to the correct .p8 file."
+            )
+
+        passphrase_bytes = (
+            self.private_key_passphrase.encode() if self.private_key_passphrase else None
+        )
+        with key_path.open("rb") as fh:
+            private_key = serialization.load_pem_private_key(
+                fh.read(),
+                password=passphrase_bytes,
+                backend=default_backend(),
+            )
+
+        return private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
 
     def get_cursor(self) -> snowflake.connector.cursor.SnowflakeCursor:
         """Get a new cursor, creating a new connection if necessary."""
@@ -112,10 +145,10 @@ class SnowflakeManager:
         """Establish a connection to Snowflake with retry logic."""
         for attempt in range(max_retries):
             try:
-                connect_params: dict[str, str | None] = {
+                connect_params: dict[str, Any] = {
                     "account": self.account,
                     "user": self.user,
-                    "password": self.password,
+                    "private_key": self._private_key_bytes,
                     "database": self.database,
                     "schema": self.schema,
                 }
