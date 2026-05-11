@@ -51,7 +51,12 @@ class EventsScraper(Scraper):
             )
 
     def _load_series_tickers_from_query(self, query_file: str) -> list[str]:
-        '''Loads the configured SQL file and returns the `ticker` column from its result set.'''
+        '''Loads the configured SQL file and returns its `ticker` column as a deduped list.
+
+        Contract: the SQL must produce a column named `ticker` (case-insensitive — SnowflakeManager
+        lowercases column names). NULL tickers are skipped; duplicates are removed while preserving
+        first-seen order.
+        '''
         path = Path(query_file).expanduser()
         if not path.is_absolute():
             path = PROJECT_ROOT / path
@@ -64,16 +69,22 @@ class EventsScraper(Scraper):
         sql = path.read_text(encoding="utf-8")
         rows = self.snowflake_manager.execute(sql, raise_exc=True)
 
-        tickers: list[str] = []
-        for row in rows:
-            ticker = row.get("ticker")
-            if ticker:
-                tickers.append(ticker)
+        raw_tickers = [row.get("ticker") for row in rows if row.get("ticker")]
+        tickers = list(dict.fromkeys(raw_tickers))
 
         if not tickers:
             logging.warning("Series query returned 0 tickers: %s", path)
         else:
-            logging.info("Series query returned %s ticker(s) from %s", len(tickers), path)
+            dropped = len(raw_tickers) - len(tickers)
+            if dropped:
+                logging.info(
+                    "Series query returned %s ticker(s) from %s (%s duplicate(s) dropped)",
+                    len(tickers),
+                    path,
+                    dropped,
+                )
+            else:
+                logging.info("Series query returned %s ticker(s) from %s", len(tickers), path)
         return tickers
 
     def _fetch_events_for_series_list(

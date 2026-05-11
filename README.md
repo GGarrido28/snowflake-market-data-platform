@@ -112,6 +112,14 @@ or
 KALSHI_EVENTS_SERIES_TICKER=KXMASTERS
 ```
 
+To backfill multiple series at once, point at a SQL file (absolute path, or relative to the repo root) whose result set returns a `ticker` column — one row per series to scrape:
+
+```bash
+KALSHI_EVENTS_SERIES_QUERY_FILE=snow_py/queries/events_mlb_series.sql
+```
+
+The scraper runs the query against Snowflake, then fetches Kalshi events for each returned series ticker. The three scope env vars are mutually exclusive — set at most one.
+
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:
 
