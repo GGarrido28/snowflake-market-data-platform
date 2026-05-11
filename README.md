@@ -87,6 +87,14 @@ or
 KALSHI_MARKET_TICKER=KXMLBTOTAL-26APR111310MIADET-14
 ```
 
+To backfill markets for multiple events at once, point at a SQL file (absolute path, or relative to the repo root) whose result set returns an `event_ticker` column — one row per event to scrape:
+
+```bash
+KALSHI_MARKETS_EVENT_QUERY_FILE=snow_py/queries/markets_mlb_events.sql
+```
+
+The scraper runs the query against Snowflake, then fetches markets + orderbooks + trades for each returned event ticker. Markets scraping is expensive (orderbook and trades are called per market), so keep the query narrow until you know how many markets each event produces. The three scope env vars are mutually exclusive — set at most one.
+
 ## Events Scraper Status
 The events scraper defaults to open events only. To include non-open or historical events in `RAW_EVENTS`, set:
 

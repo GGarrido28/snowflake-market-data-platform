@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -84,7 +85,11 @@ class MarketsScraperTests(unittest.TestCase):
         scraper = MarketsScraper()
 
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(ValueError, "KALSHI_MARKET_TICKER or KALSHI_EVENT_TICKER"):
+            with self.assertRaisesRegex(
+                ValueError,
+                "KALSHI_MARKET_TICKER, KALSHI_EVENT_TICKER, "
+                "or KALSHI_MARKETS_EVENT_QUERY_FILE",
+            ):
                 scraper._get_market_scope()
 
     @patch("snow_py.base.SnowflakeManager")
@@ -100,12 +105,11 @@ class MarketsScraperTests(unittest.TestCase):
 
         scraper = MarketsScraper()
         with patch.object(scraper, "store_data_in_snowflake") as mock_store:
-            with patch.object(scraper, "_get_market_scope", return_value=("KXTEST", None)):
+            with patch.object(scraper, "_get_market_scope", return_value=("KXTEST", None, None)):
                 scraper.run()
 
         mock_markets.get_target_markets.assert_called_once_with(
             market_ticker="KXTEST",
-            event_ticker=None,
         )
         mock_markets.get_market_details.assert_called_once_with([{"ticker": "KXTEST"}])
         mock_store.assert_any_call([{"ticker": "KXTEST"}], "RAW_MARKETS", ["ticker"])
@@ -146,7 +150,7 @@ class MarketsScraperTests(unittest.TestCase):
 
         scraper = MarketsScraper()
         with patch.object(scraper, "store_data_in_snowflake"):
-            with patch.object(scraper, "_get_market_scope", return_value=(None, "EVT")):
+            with patch.object(scraper, "_get_market_scope", return_value=(None, "EVT", None)):
                 scraper.run()
 
         snowflake_manager.create_table.assert_called_once_with(
@@ -155,6 +159,79 @@ class MarketsScraperTests(unittest.TestCase):
             table_name="RAW_MARKET_ORDERBOOKS",
             delete=True,
         )
+
+    @patch("snow_py.base.SnowflakeManager")
+    @patch("snow_py.scraping.markets.Markets")
+    def test_scraper_loads_markets_for_every_event_ticker_returned_by_query_file(
+        self,
+        mock_markets_class,
+        mock_snowflake_manager,
+    ):
+        mock_snowflake_manager.return_value.execute.return_value = [
+            {"event_ticker": "EVT-1"},
+            {"event_ticker": "EVT-2"},
+            {"event_ticker": "EVT-1"},  # duplicate — should be deduped
+            {"event_ticker": None},  # NULL — should be skipped
+        ]
+        mock_snowflake_manager.return_value.check_table_exists.return_value = False
+        mock_markets = mock_markets_class.return_value
+        mock_markets.get_target_markets.side_effect = [
+            [{"ticker": "EVT-1-MKT-A"}],
+            [{"ticker": "EVT-2-MKT-A"}, {"ticker": "EVT-2-MKT-B"}],
+        ]
+        mock_markets.get_market_details.return_value = {
+            "orderbook": [],
+            "trades": [],
+        }
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".sql", delete=False, encoding="utf-8"
+        ) as fh:
+            fh.write("SELECT 'EVT-1' AS event_ticker")
+            query_path = fh.name
+
+        try:
+            scraper = MarketsScraper()
+            with patch.object(scraper, "store_data_in_snowflake") as mock_store:
+                with patch.dict(
+                    os.environ,
+                    {"KALSHI_MARKETS_EVENT_QUERY_FILE": query_path},
+                    clear=True,
+                ):
+                    scraper.run()
+        finally:
+            os.unlink(query_path)
+
+        self.assertEqual(mock_markets.get_target_markets.call_count, 2)
+        mock_markets.get_target_markets.assert_any_call(event_ticker="EVT-1")
+        mock_markets.get_target_markets.assert_any_call(event_ticker="EVT-2")
+        mock_store.assert_any_call(
+            [
+                {"ticker": "EVT-1-MKT-A"},
+                {"ticker": "EVT-2-MKT-A"},
+                {"ticker": "EVT-2-MKT-B"},
+            ],
+            "RAW_MARKETS",
+            ["ticker"],
+        )
+
+    @patch("snow_py.base.SnowflakeManager")
+    def test_scraper_rejects_setting_more_than_one_scope_var(self, _mock_snowflake_manager):
+        scraper = MarketsScraper()
+
+        with patch.dict(
+            os.environ,
+            {
+                "KALSHI_EVENT_TICKER": "EVT",
+                "KALSHI_MARKETS_EVENT_QUERY_FILE": "snow_py/queries/markets_mlb_events.sql",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(
+                ValueError,
+                "Set only one of KALSHI_MARKET_TICKER",
+            ):
+                scraper._get_market_scope()
 
 
 if __name__ == "__main__":
