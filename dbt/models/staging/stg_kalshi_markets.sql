@@ -30,7 +30,11 @@ select
     "strike_type" as strike_type,
     "expiration_value" as expiration_value,
     "early_close_condition" as early_close_condition,
+    {% if 'primary_participant_key' in raw_markets_column_names %}
     "primary_participant_key" as primary_participant_key,
+    {% else %}
+    cast(null as varchar) as primary_participant_key,
+    {% endif %}
     "can_close_early" as can_close_early,
     "fractional_trading_enabled" as is_fractional_trading_enabled,
     try_to_timestamp_ntz("created_time") as created_at,
