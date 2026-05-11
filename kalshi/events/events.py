@@ -1,6 +1,6 @@
 from kalshi.base import KalshiBase
 
-DEFAULT_EVENTS_PAGE_SIZE = 1000
+DEFAULT_EVENTS_PAGE_SIZE = 200
 
 class Events(KalshiBase):
     def __init__(self):
