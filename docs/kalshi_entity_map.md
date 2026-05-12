@@ -67,6 +67,7 @@ left join {{ ref('stg_kalshi_markets') }} markets
 
 ## References
 
+- New to prediction-market pricing? Start with [`kalshi_pricing_primer.md`](./kalshi_pricing_primer.md) — it explains the YES/NO contract structure, the $1 payout, and what the `_fp` vs `_dollars` suffixes mean.
 - Kalshi glossary: https://docs.kalshi.com/getting_started/terms
 - Get Series List: https://docs.kalshi.com/api-reference/market/get-series-list
 - Get Events: https://docs.kalshi.com/api-reference/events/get-events
