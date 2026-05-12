@@ -38,6 +38,8 @@ For those unfamiliar with Kalshi's terminology, this section provides definition
 
 **Order Book**: The order book displays all the resting orders available on the market. It displays the quantity of resting orders available as well as their corresponding prices. A resting order is an offer to purchase contracts at a certain price that is not matched immediately.
 
+**Pricing Mechanics**: If you are new to prediction markets and find yourself wondering things like "why would anyone buy NO if NO pays $0?" or "are prices in cents or dollars?", read the [`docs/kalshi_pricing_primer.md`](./docs/kalshi_pricing_primer.md) walkthrough before digging into the data. It covers how YES/NO contracts work, why prices sum to $1, what the `_fp` vs `_dollars` column suffixes mean, and how to compute the dollar value of any trade row.
+
 ## Examples of Terms
 **Market**: Will the S&P 500 close above 4000 on December 31, 2024?
 
