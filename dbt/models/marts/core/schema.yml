@@ -17,51 +17,91 @@ models:
         description: Day of month (1-31).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 31
+                inclusive: true
       - name: the_day_suffix
         description: English ordinal suffix for the_day ("st", "nd", "rd", "th").
         tests:
           - accepted_values:
-              values: ['st', 'nd', 'rd', 'th']
+              arguments:
+                values: ['st', 'nd', 'rd', 'th']
       - name: the_day_name
         description: Full English weekday name (Monday-Sunday).
         tests:
           - accepted_values:
-              values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+              arguments:
+                values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
       - name: the_day_of_week
         description: ISO-8601 day-of-week index with Monday=1 through Sunday=7.
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4, 5, 6, 7]
-              quote: false
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7]
+                quote: false
       - name: the_day_of_week_in_month
         description: Ordinal occurrence of this weekday within the month (e.g., 2 for the 2nd Tuesday).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 5
+                inclusive: true
       - name: the_day_of_year
         description: Day of year (1-366).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 366
+                inclusive: true
       - name: is_weekend
         description: True when the date falls on Saturday or Sunday.
       - name: the_week
         description: US-style week of year (weeks start Sunday; week 1 contains Jan 1).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 54
+                inclusive: true
       - name: the_iso_week
         description: ISO-8601 week of year (weeks start Monday; week 1 contains the first Thursday).
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 53
+                inclusive: true
       - name: the_first_of_week
         description: Monday that begins the ISO week containing the_date.
       - name: the_last_of_week
         description: Sunday that ends the ISO week containing the_date.
       - name: the_week_of_month
         description: Dense rank of the_week within its calendar month.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+                max_value: 6
+                inclusive: true
       - name: the_month
         description: Calendar month (1-12).
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-              quote: false
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                quote: false
       - name: the_month_name
         description: Full English month name.
         tests:
           - accepted_values:
-              values: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+              arguments:
+                values: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
       - name: the_first_of_month
         description: First day of the month containing the_date.
       - name: the_last_of_month
@@ -75,8 +115,9 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4]
-              quote: false
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
       - name: the_first_of_quarter
         description: First day of the quarter containing the_date.
       - name: the_last_of_quarter
@@ -124,31 +165,49 @@ models:
         description: Hour of day in 24-hour clock (0-23).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 23
+                inclusive: true
       - name: the_minute
         description: Minute within the hour (0-59).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 59
+                inclusive: true
       - name: the_minute_of_day
         description: Minutes elapsed since midnight (0-1439).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1439
+                inclusive: true
       - name: the_hour_12
         description: Hour in 12-hour clock (1-12).
         tests:
           - accepted_values:
-              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-              quote: false
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                quote: false
       - name: am_pm
         description: AM/PM marker for the 12-hour clock representation.
         tests:
           - accepted_values:
-              values: ['AM', 'PM']
+              arguments:
+                values: ['AM', 'PM']
       - name: portion_of_day
         description: Coarse time-of-day bucket — one of overnight (00-04), early_morning (05-07), morning (08-10), late_morning (11), noon (12), afternoon (13-16), evening (17-19), night (20-23).
         tests:
           - not_null
           - accepted_values:
-              values: ['overnight', 'early_morning', 'morning', 'late_morning', 'noon', 'afternoon', 'evening', 'night']
+              arguments:
+                values: ['overnight', 'early_morning', 'morning', 'late_morning', 'noon', 'afternoon', 'evening', 'night']
       - name: style_hhmm
         description: 24-hour HH:MM formatted string.
       - name: style_hhmm_12
