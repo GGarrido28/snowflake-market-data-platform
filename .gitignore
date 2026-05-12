@@ -14,6 +14,7 @@ dbt/profiles.yml
 
 # Claude
 .claude/settings.json
+.claude/settings.local.json
 
 # dbt artifacts
 dbt/target/
