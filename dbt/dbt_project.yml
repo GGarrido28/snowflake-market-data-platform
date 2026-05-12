@@ -35,3 +35,43 @@ models:
       +schema: KALSHI
       +tags:
         - mart
+
+seeds:
+  snowflake_market_data_platform:
+    +schema: STAGE
+    +tags:
+      - seed
+    dim_dates_seed:
+      +column_types:
+        the_date: date
+        the_first_of_week: date
+        the_last_of_week: date
+        the_first_of_month: date
+        the_last_of_month: date
+        the_first_of_next_month: date
+        the_last_of_next_month: date
+        the_first_of_quarter: date
+        the_last_of_quarter: date
+        the_first_of_year: date
+        the_last_of_year: date
+        the_day: smallint
+        the_day_of_week: smallint
+        the_day_of_week_in_month: smallint
+        the_day_of_year: smallint
+        is_weekend: boolean
+        the_week: smallint
+        the_iso_week: smallint
+        the_week_of_month: smallint
+        the_month: smallint
+        the_quarter: smallint
+        the_year: smallint
+        the_iso_year: smallint
+        is_leap_year: boolean
+        has_53_weeks: boolean
+        has_53_iso_weeks: boolean
+    dim_times_seed:
+      +column_types:
+        the_hour: smallint
+        the_minute: smallint
+        the_minute_of_day: smallint
+        the_hour_12: smallint

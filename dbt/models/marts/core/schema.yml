@@ -1,0 +1,161 @@
+version: 2
+
+models:
+  - name: dim_dates
+    description: Conformed date dimension derived from the dim_dates seed; one row per calendar date with day, week, month, quarter, year parts and formatted style strings.
+    columns:
+      - name: date_key
+        description: Natural key for the date dimension (calendar date).
+        tests:
+          - not_null
+          - unique
+      - name: the_date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: the_day
+        description: Day of month (1-31).
+        tests:
+          - not_null
+      - name: the_day_suffix
+        description: English ordinal suffix for the_day ("st", "nd", "rd", "th").
+        tests:
+          - accepted_values:
+              values: ['st', 'nd', 'rd', 'th']
+      - name: the_day_name
+        description: Full English weekday name (Monday-Sunday).
+        tests:
+          - accepted_values:
+              values: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+      - name: the_day_of_week
+        description: ISO-8601 day-of-week index with Monday=1 through Sunday=7.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7]
+              quote: false
+      - name: the_day_of_week_in_month
+        description: Ordinal occurrence of this weekday within the month (e.g., 2 for the 2nd Tuesday).
+      - name: the_day_of_year
+        description: Day of year (1-366).
+      - name: is_weekend
+        description: True when the date falls on Saturday or Sunday.
+      - name: the_week
+        description: US-style week of year (weeks start Sunday; week 1 contains Jan 1).
+      - name: the_iso_week
+        description: ISO-8601 week of year (weeks start Monday; week 1 contains the first Thursday).
+      - name: the_first_of_week
+        description: Monday that begins the ISO week containing the_date.
+      - name: the_last_of_week
+        description: Sunday that ends the ISO week containing the_date.
+      - name: the_week_of_month
+        description: Dense rank of the_week within its calendar month.
+      - name: the_month
+        description: Calendar month (1-12).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+              quote: false
+      - name: the_month_name
+        description: Full English month name.
+        tests:
+          - accepted_values:
+              values: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      - name: the_first_of_month
+        description: First day of the month containing the_date.
+      - name: the_last_of_month
+        description: Last day of the month containing the_date.
+      - name: the_first_of_next_month
+        description: First day of the month following the_date.
+      - name: the_last_of_next_month
+        description: Last day of the month following the_date.
+      - name: the_quarter
+        description: Calendar quarter (1-4).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+              quote: false
+      - name: the_first_of_quarter
+        description: First day of the quarter containing the_date.
+      - name: the_last_of_quarter
+        description: Last day of the quarter containing the_date.
+      - name: the_year
+        description: Calendar year.
+        tests:
+          - not_null
+      - name: the_iso_year
+        description: ISO-8601 week-numbering year for the_date.
+      - name: the_first_of_year
+        description: January 1 of the_year.
+      - name: the_last_of_year
+        description: December 31 of the_year.
+      - name: is_leap_year
+        description: True when the_year is a Gregorian leap year.
+      - name: has_53_weeks
+        description: True when the_year contains a 53rd US-style week.
+      - name: has_53_iso_weeks
+        description: True when the_year contains a 53rd ISO week.
+      - name: mmyyyy
+        description: Six-character MMYYYY string.
+      - name: style_101
+        description: MM/DD/YYYY formatted string (SQL Server style 101).
+      - name: style_103
+        description: DD/MM/YYYY formatted string (SQL Server style 103).
+      - name: style_112
+        description: YYYYMMDD formatted string (SQL Server style 112).
+      - name: style_120
+        description: YYYY-MM-DD formatted string (SQL Server style 120).
+
+  - name: dim_times
+    description: Conformed time-of-day dimension at minute grain (1,440 rows) with a portion_of_day classifier covering overnight through night.
+    columns:
+      - name: time_key
+        description: Natural key for the time dimension (minute of day, 0-1439).
+        tests:
+          - not_null
+          - unique
+      - name: the_time
+        description: Time of day at minute precision (HH:MM:00).
+        tests:
+          - not_null
+      - name: the_hour
+        description: Hour of day in 24-hour clock (0-23).
+        tests:
+          - not_null
+      - name: the_minute
+        description: Minute within the hour (0-59).
+        tests:
+          - not_null
+      - name: the_minute_of_day
+        description: Minutes elapsed since midnight (0-1439).
+        tests:
+          - not_null
+      - name: the_hour_12
+        description: Hour in 12-hour clock (1-12).
+        tests:
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+              quote: false
+      - name: am_pm
+        description: AM/PM marker for the 12-hour clock representation.
+        tests:
+          - accepted_values:
+              values: ['AM', 'PM']
+      - name: portion_of_day
+        description: Coarse time-of-day bucket — one of overnight (00-04), early_morning (05-07), morning (08-10), late_morning (11), noon (12), afternoon (13-16), evening (17-19), night (20-23).
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['overnight', 'early_morning', 'morning', 'late_morning', 'noon', 'afternoon', 'evening', 'night']
+      - name: style_hhmm
+        description: 24-hour HH:MM formatted string.
+      - name: style_hhmm_12
+        description: 12-hour HH:MM AM/PM formatted string.
+
+seeds:
+  - name: dim_dates_seed
+    description: Source seed for the dim_dates dimension; one row per calendar date from 2020-01-01 through 2035-12-31.
+  - name: dim_times_seed
+    description: Source seed for the dim_times dimension; one row per minute of day at minute grain.
