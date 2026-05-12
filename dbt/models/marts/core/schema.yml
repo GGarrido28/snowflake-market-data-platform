@@ -17,6 +17,10 @@ models:
         description: Day of month (1-31).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 31
+              inclusive: true
       - name: the_day_suffix
         description: English ordinal suffix for the_day ("st", "nd", "rd", "th").
         tests:
@@ -36,20 +40,45 @@ models:
               quote: false
       - name: the_day_of_week_in_month
         description: Ordinal occurrence of this weekday within the month (e.g., 2 for the 2nd Tuesday).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 5
+              inclusive: true
       - name: the_day_of_year
         description: Day of year (1-366).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 366
+              inclusive: true
       - name: is_weekend
         description: True when the date falls on Saturday or Sunday.
       - name: the_week
         description: US-style week of year (weeks start Sunday; week 1 contains Jan 1).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 54
+              inclusive: true
       - name: the_iso_week
         description: ISO-8601 week of year (weeks start Monday; week 1 contains the first Thursday).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 53
+              inclusive: true
       - name: the_first_of_week
         description: Monday that begins the ISO week containing the_date.
       - name: the_last_of_week
         description: Sunday that ends the ISO week containing the_date.
       - name: the_week_of_month
         description: Dense rank of the_week within its calendar month.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 6
+              inclusive: true
       - name: the_month
         description: Calendar month (1-12).
         tests:
@@ -124,14 +153,26 @@ models:
         description: Hour of day in 24-hour clock (0-23).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 23
+              inclusive: true
       - name: the_minute
         description: Minute within the hour (0-59).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 59
+              inclusive: true
       - name: the_minute_of_day
         description: Minutes elapsed since midnight (0-1439).
         tests:
           - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1439
+              inclusive: true
       - name: the_hour_12
         description: Hour in 12-hour clock (1-12).
         tests:
