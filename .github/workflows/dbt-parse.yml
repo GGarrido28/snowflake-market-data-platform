@@ -36,6 +36,9 @@ jobs:
       - name: Install dbt
         run: pip install "dbt-snowflake>=1.8,<2.0"
 
+      - name: Stage profiles.yml from example
+        run: cp profiles.yml.example profiles.yml
+
       - name: dbt deps
         run: dbt deps
 
