@@ -5,6 +5,7 @@ from kalshi.base import KalshiBase
 
 
 DEFAULT_MARKETS_PAGE_SIZE = 1000
+DEFAULT_TRADES_PAGE_SIZE = 1000
 DETAIL_PROGRESS_EVERY = 100
 
 class Markets(KalshiBase):
@@ -27,8 +28,25 @@ class Markets(KalshiBase):
         response = self.make_request("GET", f"/markets/{market_ticker}/orderbook")
         return response.json().get("orderbook_fp", {})
     
-    def get_market_trades(self, market_ticker: str=None, limit=100) -> list:
-        '''Fetches recent trades for a specific market.'''
+    def get_market_trades(
+        self,
+        market_ticker: str | None = None,
+        limit: int = DEFAULT_TRADES_PAGE_SIZE,
+        all_pages: bool = True,
+    ) -> list:
+        '''Fetches trades for a specific market.
+
+        Defaults to paginating through the full trade history via the cursor; the
+        Kalshi API caps a single page at 1000 rows, so a one-shot request would
+        silently truncate any market with more trades than that.
+        '''
+        if all_pages:
+            return self.get_paginated_results(
+                "GET",
+                "/markets/trades",
+                limit=limit,
+                ticker=market_ticker,
+            )
         response = self.make_request("GET", "/markets/trades", limit=limit, ticker=market_ticker)
         return response.json().get("trades", [])
 
