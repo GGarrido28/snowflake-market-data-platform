@@ -32,12 +32,14 @@ This means a notebook can be re-executed without Snowflake creds as long as some
 
 ## Running a notebook
 
-Activate the project's conda env, install Jupyter if you haven't, and open the notebook:
+Activate the project's conda env and make sure the analysis dependencies are installed alongside the core scrape/ingest deps:
 
 ```bash
 conda activate snowflake-kalshi
-pip install jupyterlab
+pip install jupyterlab pandas matplotlib pyarrow
 jupyter lab
 ```
 
-To pull fresh data, also have a `.env` configured with the same `SNOWFLAKE_*` vars the dbt and Python ingest paths already use (see the root README for setup).
+(`pandas` and `pyarrow` are needed for the parquet cache; `matplotlib` for plots; `jupyterlab` for opening notebooks.)
+
+To pull fresh data, also have a `.env` configured with the same `SNOWFLAKE_*` vars the dbt and Python ingest paths already use (see the root README for setup). If you've just scraped new markets, run `dbt run` first so the marts pick up the new rows — the notebooks read from `fct_*` and `stg_*`, not from `RAW`.
