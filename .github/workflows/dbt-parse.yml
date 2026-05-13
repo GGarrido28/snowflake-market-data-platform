@@ -1,0 +1,46 @@
+name: dbt parse
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "dbt/**"
+      - ".github/workflows/dbt-parse.yml"
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dbt
+    env:
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+      # dbt parse renders Jinja without connecting to Snowflake, but profiles.yml
+      # still gets templated — give env_var() lookups something to resolve to.
+      SNOWFLAKE_ACCOUNT: ci
+      SNOWFLAKE_USER: ci
+      SNOWFLAKE_WAREHOUSE: ci
+      SNOWFLAKE_PRIVATE_KEY_PATH: /dev/null
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dbt
+        run: pip install "dbt-snowflake>=1.8,<2.0"
+
+      - name: Stage profiles.yml from example
+        run: cp profiles.yml.example profiles.yml
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt parse
+        run: dbt parse
