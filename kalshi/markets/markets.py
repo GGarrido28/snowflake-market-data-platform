@@ -5,6 +5,7 @@ from kalshi.base import KalshiBase
 
 
 DEFAULT_MARKETS_PAGE_SIZE = 1000
+DEFAULT_TRADES_PAGE_SIZE = 1000
 DETAIL_PROGRESS_EVERY = 100
 
 class Markets(KalshiBase):
@@ -27,8 +28,25 @@ class Markets(KalshiBase):
         response = self.make_request("GET", f"/markets/{market_ticker}/orderbook")
         return response.json().get("orderbook_fp", {})
     
-    def get_market_trades(self, market_ticker: str=None, limit=100) -> list:
-        '''Fetches recent trades for a specific market.'''
+    def get_market_trades(
+        self,
+        market_ticker: str | None = None,
+        limit: int = DEFAULT_TRADES_PAGE_SIZE,
+        all_pages: bool = True,
+    ) -> list:
+        '''Fetches trades for a specific market.
+
+        Defaults to paginating through the full trade history via the cursor; the
+        Kalshi API caps a single page at 1000 rows, so a one-shot request would
+        silently truncate any market with more trades than that.
+        '''
+        if all_pages:
+            return self.get_paginated_results(
+                "GET",
+                "/markets/trades",
+                limit=limit,
+                ticker=market_ticker,
+            )
         response = self.make_request("GET", "/markets/trades", limit=limit, ticker=market_ticker)
         return response.json().get("trades", [])
 
@@ -55,8 +73,19 @@ class Markets(KalshiBase):
             )
         return self.markets
 
-    def get_market_details(self, markets: list[dict] | None = None, progress_every: int = DETAIL_PROGRESS_EVERY) -> dict:
-        '''Fetches orderbooks and recent trades for a list of markets with progress logging.'''
+    def get_market_details(
+        self,
+        markets: list[dict] | None = None,
+        progress_every: int = DETAIL_PROGRESS_EVERY,
+        paginate_trades: bool = True,
+    ) -> dict:
+        '''Fetches orderbooks and trades for a list of markets with progress logging.
+
+        When `paginate_trades` is True (default), each market's full trade history is
+        pulled via the cursor — accurate but proportional to historical depth. Set to
+        False to sample the most recent 1000 trades per market when running across
+        many markets where bulk volume matters more than completeness.
+        '''
         if markets is None:
             markets = self.markets
 
@@ -70,6 +99,12 @@ class Markets(KalshiBase):
                 "trades": self.trades,
             }
 
+        logging.info(
+            "Trade pagination: %s. %s market(s) to process.",
+            "ON (full trade history per market)" if paginate_trades else "OFF (latest page only)",
+            total_markets,
+        )
+
         start = perf_counter()
         for index, market in enumerate(markets, start=1):
             market_ticker = market.get("ticker")
@@ -81,7 +116,7 @@ class Markets(KalshiBase):
                         "orderbook": orderbook,
                     })
 
-                trades = self.get_market_trades(market_ticker)
+                trades = self.get_market_trades(market_ticker, all_pages=paginate_trades)
                 if trades:
                     self.trades.extend(trades)
 
