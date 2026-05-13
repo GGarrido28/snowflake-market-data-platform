@@ -8,6 +8,10 @@ on:
       - "dbt/**"
       - ".github/workflows/dbt-parse.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   parse:
     runs-on: ubuntu-latest
