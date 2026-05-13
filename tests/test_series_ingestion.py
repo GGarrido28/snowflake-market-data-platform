@@ -41,6 +41,7 @@ class SeriesPaginationTests(unittest.TestCase):
         _mock_snowflake_manager,
     ):
         mock_series_class.return_value.get_all_series.return_value = [{"ticker": "KXTEST"}]
+        _mock_snowflake_manager.return_value.check_table_exists.return_value = False
 
         scraper = SeriesScraper()
         with patch.object(scraper, "store_data_in_snowflake") as mock_store:

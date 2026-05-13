@@ -70,7 +70,7 @@ class MarketEndpointTests(unittest.TestCase):
                     result = markets.get_market_endpoints(market_ticker="KXTEST")
 
         mock_orderbook.assert_called_once_with("KXTEST")
-        mock_trades.assert_called_once_with("KXTEST")
+        mock_trades.assert_called_once_with("KXTEST", all_pages=True)
         self.assertEqual(result["markets"], [{"ticker": "KXTEST"}])
         self.assertEqual(
             result["orderbook"],

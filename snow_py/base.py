@@ -14,6 +14,38 @@ class Scraper(ABC):
         '''Runs the scraper.'''
         pass
 
+    def _recreate_table_if_schema_changed(
+        self,
+        table_name: str,
+        rows: list[dict],
+        primary_keys: list[str],
+    ) -> None:
+        '''Rebuilds a raw table when the incoming schema no longer matches the existing Snowflake table.'''
+        if not rows or not self.snowflake_manager or not self.snowflake_manager.check_table_exists(table_name):
+            return
+
+        tables = self.snowflake_manager.get_tables()
+        existing_columns = set(tables.get(table_name.lower(), {}).keys())
+        incoming_columns = {column for row in rows for column in row.keys()}
+
+        if existing_columns == incoming_columns:
+            return
+
+        logging.info(
+            "%s schema changed from %s to %s; recreating table.",
+            table_name,
+            sorted(existing_columns),
+            sorted(incoming_columns),
+        )
+        created = self.snowflake_manager.create_table(
+            dict_list=rows,
+            primary_keys=primary_keys,
+            table_name=table_name,
+            delete=True,
+        )
+        if created is not True:
+            raise RuntimeError(f"Could not recreate {table_name} with the updated schema.")
+
     def _normalize_records(self, data: list) -> list[dict]:
         '''Flattens nested API responses into Snowflake-friendly row dictionaries.'''
         normalized: list[dict] = []

@@ -61,12 +61,16 @@ def scrape_one_market(
     full trade history.
 
     Mutates process env vars in `_MARKET_SCOPE_ENVS` so the scraper picks up the
-    requested scope; pre-existing values in that family are cleared first.
+    requested scope; pre-existing values in that family are cleared first. The
+    chosen scope value is left set on the process after the call returns — fine
+    for the CLI (process exits), worth knowing in a notebook where a later
+    direct `MarketsScraper().run()` would silently reuse it.
     '''
     if bool(market_ticker) == bool(event_ticker):
         raise ValueError("Provide exactly one of market_ticker or event_ticker.")
     chosen_env = "KALSHI_MARKET_TICKER" if market_ticker else "KALSHI_EVENT_TICKER"
     chosen_value = market_ticker or event_ticker
+    assert chosen_value is not None  # guarded by the bool(x) == bool(y) check above
     _set_exclusive_scope(_MARKET_SCOPE_ENVS, chosen_env, chosen_value)
     _run_scraper(MarketsScraper)
 
@@ -79,12 +83,16 @@ def scrape_one_event(
     '''Scrapes events for one specific event ticker or one specific series.
 
     Mutates process env vars in `_EVENT_SCOPE_ENVS` so the scraper picks up the
-    requested scope; pre-existing values in that family are cleared first.
+    requested scope; pre-existing values in that family are cleared first. The
+    chosen scope value is left set on the process after the call returns — fine
+    for the CLI (process exits), worth knowing in a notebook where a later
+    direct `EventsScraper().run()` would silently reuse it.
     '''
     if bool(event_ticker) == bool(series_ticker):
         raise ValueError("Provide exactly one of event_ticker or series_ticker.")
     chosen_env = "KALSHI_EVENTS_EVENT_TICKER" if event_ticker else "KALSHI_EVENTS_SERIES_TICKER"
     chosen_value = event_ticker or series_ticker
+    assert chosen_value is not None  # guarded by the bool(x) == bool(y) check above
     _set_exclusive_scope(_EVENT_SCOPE_ENVS, chosen_env, chosen_value)
     _run_scraper(EventsScraper)
 
@@ -92,8 +100,10 @@ def scrape_one_event(
 def scrape_one_series(*, series_ticker: str) -> None:
     '''Scrapes a single series row by ticker.
 
-    Mutates process env vars in `_SERIES_SCOPE_ENVS` so the scraper picks up the
-    requested scope.
+    Mutates `KALSHI_SERIES_TICKER` on the process so the scraper picks up the
+    requested scope. The env var is left set after the call returns — fine for
+    the CLI (process exits), worth knowing in a notebook where a later direct
+    `SeriesScraper().run()` would silently reuse it.
     '''
     if not series_ticker:
         raise ValueError("series_ticker is required.")

@@ -28,6 +28,7 @@ class SeriesScraper(Scraper):
                 series_data = [series_row] if series_row else []
             else:
                 series_data = series.get_all_series(all_pages=True)
+            self._recreate_table_if_schema_changed("RAW_SERIES", series_data, ["ticker"])
             self.store_data_in_snowflake(series_data, "RAW_SERIES", ["ticker"])
         except Exception as e:
             logging.error(f"Error fetching series data: {e}")
