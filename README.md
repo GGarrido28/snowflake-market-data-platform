@@ -1,10 +1,6 @@
-# What is this project?
-A Snowflake-based data platform that ingests, analyzes, models, and visualizes prediction market data (Kalshi) to evaluate market efficiency, probability calibration, and liquidity dynamics.
+# Kalshi Market Data Platform
 
-# Why this project?
-This project aims to provide insights into the efficiency of prediction markets, which are often used for forecasting events. By analyzing Kalshi's data, we can assess how well the market prices reflect actual probabilities, identify potential inefficiencies, and understand liquidity patterns. This can be valuable for traders, researchers, and anyone interested in the dynamics of prediction markets.
-
-For my personal use, this project serves as a practical application of data engineering and analytics skills, allowing me to work with real-world data and derive meaningful insights. It also provides an opportunity to explore the intersection of finance, economics, sports, and data science. I decided to use Snowflake because of its scalability, performance, and ease of use for data warehousing and analytics. Snowflake's ability to handle large volumes of data and its support for SQL make it an ideal choice for this project. 
+A data pipeline that ingests Kalshi prediction market data into Snowflake and transforms it with dbt. The output answers a specific question: which MLB market types show the most pre-game vs. live-trading price drift, and how does liquidity correlate with that drift? Stack: Python, Snowflake, dbt.
 
 # Project Structure
 - `kalshi`: Contains the main code for data scraping from Kalshi API.
@@ -15,12 +11,8 @@ For my personal use, this project serves as a practical application of data engi
 - `README.md`: This file, providing an overview of the project and its purpose.
 
 # Tech Stack
-- **Data Collection**: Python
-- **Data Storage**: Snowflake 
-- **Data Analysis**: Snowflake + Jupyter Notebooks
-- **Data Modeling and Transformation**: DBT (Data Build Tool)
-- **Version Control**: GitHub
-- **Scheduling**: Airflow (optional for automating data collection and transformation)
+The lead covers the core stack (Python, Snowflake, dbt). Additional tooling:
+- **Data Analysis**: Jupyter Notebooks
 - **LLMs**: Cursor, Claude Code, Copilot
 
 # Kalshi Glossary
