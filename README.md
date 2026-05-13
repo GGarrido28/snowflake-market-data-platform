@@ -1,6 +1,6 @@
 # Kalshi Market Data Platform
 
-A data pipeline that ingests Kalshi prediction market data into Snowflake and transforms it with dbt. The output answers a specific question: which MLB market types show the most pre-game vs. live-trading price drift, and how does liquidity correlate with that drift? Stack: Python, Snowflake, dbt.
+A data pipeline that ingests Kalshi MLB prediction market data into Snowflake and transforms it with dbt. The output answers a specific question: across MLB market types (totals, spreads, moneylines), how does price drift between market-open and market-close differ, and how does liquidity, measured by trade volume and orderbook depth, correlate with that drift? Stack: Python, Snowflake, dbt.
 
 # Project Structure
 - `kalshi`: Contains the main code for data scraping from Kalshi API.

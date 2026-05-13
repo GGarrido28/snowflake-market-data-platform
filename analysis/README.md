@@ -1,6 +1,6 @@
 # Analysis
 
-Notebook-driven exploratory analysis and visualizations for the Kalshi market data platform. Each notebook answers (or starts to answer) a piece of the project's headline question: **which MLB market types show the most pre-game vs. live-trading price drift, and how does liquidity correlate with that drift?**
+Notebook-driven exploratory analysis and visualizations for the Kalshi market data platform. Each notebook answers (or starts to answer) a piece of the project's headline question: **across MLB market types (totals, spreads, moneylines), how does price drift between market-open and market-close differ, and how does liquidity, measured by trade volume and orderbook depth, correlate with that drift?**
 
 ## Why notebooks (and not a live dashboard, for now)
 
