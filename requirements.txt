@@ -4,3 +4,4 @@ python-dotenv>=0.9.9
 snowflake-connector-python>=4.3.0
 matplotlib>=3.7
 pyarrow>=14.0
+pandas>=2.0
