@@ -23,3 +23,6 @@ dbt/dbt_packages/
 
 # logs
 logs/
+
+# analysis cache — pulled fresh from Snowflake each time, not committed
+analysis/data/
