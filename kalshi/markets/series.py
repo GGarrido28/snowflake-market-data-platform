@@ -14,3 +14,8 @@ class Series(KalshiBase):
             response = self.make_request("GET", "/series", limit=limit, params=params, **kwargs)
             self.series = response.json().get("series", [])
         return self.series
+
+    def get_series(self, series_ticker: str) -> dict:
+        '''Fetches a single series by ticker.'''
+        response = self.make_request("GET", f"/series/{series_ticker}")
+        return response.json().get("series", {})
