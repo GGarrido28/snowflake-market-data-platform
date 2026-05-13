@@ -8,6 +8,7 @@ on:
       - "kalshi/**"
       - "snow_py/**"
       - "tests/**"
+      - "dbt/models/**"
       - "requirements.txt"
       - "pyproject.toml"
       - ".github/workflows/python-tests.yml"
