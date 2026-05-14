@@ -37,7 +37,7 @@ The easiest path is the deploy script:
 .\scripts\deploy_mlb_teams_lambda.ps1 -Profile ggarrido -Region us-east-2
 ```
 
-The script initializes Terraform, bootstraps ECR, logs Docker into ECR, builds and pushes the Lambda image, applies the full Terraform stack, and invokes a smoke test.
+The script initializes Terraform, bootstraps ECR, logs Docker into ECR, builds and pushes the Lambda image, applies the full Terraform stack, and invokes a smoke test. Run it from PowerShell.
 
 If your SSO session has expired, refresh it first:
 

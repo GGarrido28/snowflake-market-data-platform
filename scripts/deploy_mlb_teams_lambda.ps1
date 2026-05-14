@@ -8,6 +8,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$TerraformPath = (Resolve-Path (Join-Path $RepoRoot $TerraformDir)).Path
+$DockerfilePath = (Resolve-Path (Join-Path $RepoRoot $Dockerfile)).Path
+$TerraformChdir = "-chdir=$TerraformPath"
 
 function Require-Command {
     param([string]$Name)
@@ -29,16 +33,16 @@ Write-Host "Using AWS profile '$Profile' in region '$Region'."
 aws sts get-caller-identity --profile $Profile | Write-Host
 
 if (-not $SkipInit) {
-    terraform -chdir=$TerraformDir init
+    terraform $TerraformChdir init
 }
 
 $ImageTag = (git rev-parse --short HEAD).Trim()
 Write-Host "Using image tag '$ImageTag'."
 
 Write-Host "Ensuring ECR repository exists..."
-terraform -chdir=$TerraformDir apply "-target=aws_ecr_repository.mlb_teams" -auto-approve
+terraform $TerraformChdir apply "-target=aws_ecr_repository.mlb_teams" -auto-approve
 
-$RepositoryUrl = (terraform -chdir=$TerraformDir output -raw ecr_repository_url).Trim()
+$RepositoryUrl = (terraform $TerraformChdir output -raw ecr_repository_url).Trim()
 $Registry = $RepositoryUrl.Split("/")[0]
 $ImageUri = "${RepositoryUrl}:${ImageTag}"
 
@@ -47,15 +51,28 @@ $Password = (aws ecr get-login-password --region $Region --profile $Profile).Tri
 if (-not $Password) {
     throw "AWS ECR login password was empty. Run 'aws sso login --profile $Profile' and try again."
 }
-$Password | docker login --username AWS --password-stdin $Registry
+$PasswordFile = Join-Path ([System.IO.Path]::GetTempPath()) "ecr-password-$PID.txt"
+try {
+    [System.IO.File]::WriteAllText($PasswordFile, $Password)
+    cmd.exe /d /c "type `"$PasswordFile`" | docker login --username AWS --password-stdin $Registry"
+} finally {
+    if (Test-Path $PasswordFile) {
+        Remove-Item -LiteralPath $PasswordFile -Force
+    }
+}
 
 Write-Host "Building and pushing Lambda image '$ImageUri'."
-docker buildx build --platform linux/amd64 -f $Dockerfile -t $ImageUri --push .
+Push-Location $RepoRoot
+try {
+    docker buildx build --platform linux/amd64 -f $DockerfilePath -t $ImageUri --push .
+} finally {
+    Pop-Location
+}
 
 Write-Host "Applying full Terraform stack."
-terraform -chdir=$TerraformDir apply -var "lambda_image_tag=$ImageTag" -auto-approve
+terraform $TerraformChdir apply -var "lambda_image_tag=$ImageTag" -auto-approve
 
-$FunctionName = (terraform -chdir=$TerraformDir output -raw lambda_function_name).Trim()
+$FunctionName = (terraform $TerraformChdir output -raw lambda_function_name).Trim()
 Write-Host "Deployed Lambda function '$FunctionName'."
 
 if (-not $SkipInvoke) {
