@@ -8,6 +8,7 @@ A data pipeline that ingests Kalshi MLB prediction market data into Snowflake an
 - `src/market_data_platform/pipelines`: Source-specific ingestion workflows that load raw Snowflake tables or Snowflake-ready S3 landing files.
 - `src/market_data_platform/warehouse`: Snowflake connection, S3 landing, and loading utilities.
 - `aws/lambdas`: Thin AWS Lambda handlers that dispatch into shared package pipeline code.
+- `infra/terraform`: AWS infrastructure for the Lambda deployment path.
 - `dbt`: Local dbt project for Snowflake transformations and analytics models.
 - `analysis`: Jupyter notebooks for EDA and visualizations. See [`analysis/README.md`](./analysis/README.md).
 - `ai`: Public AI-facing artifacts, including a display copy of the Codex skill used for repo change workflows.
@@ -147,6 +148,8 @@ MLB_TEAMS_S3_PREFIX=raw/mlb/teams
 ```
 
 `SNOWFLAKE_S3_BUCKET` and `SNOWFLAKE_S3_PREFIX` are also supported fallbacks. S3 folders are object key prefixes, so the pipeline can write under `raw/mlb/teams/...` even if only `raw/mlb` is visible before the first run. The Lambda entrypoint is [`aws/lambdas/mlb_teams/handler.py`](./aws/lambdas/mlb_teams/handler.py), which calls `market_data_platform.pipelines.mlb.teams_pipeline.run(event)`.
+
+Deployment instructions live in [`docs/aws_lambda_deploy.md`](./docs/aws_lambda_deploy.md).
 
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:

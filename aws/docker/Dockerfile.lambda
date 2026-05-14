@@ -1,0 +1,9 @@
+FROM public.ecr.aws/lambda/python:3.12
+
+COPY aws/docker/requirements.lambda.txt .
+RUN pip install --no-cache-dir -r requirements.lambda.txt
+
+COPY src/market_data_platform ${LAMBDA_TASK_ROOT}/market_data_platform
+COPY aws ${LAMBDA_TASK_ROOT}/aws
+
+CMD ["aws.lambdas.mlb_teams.handler.lambda_handler"]
