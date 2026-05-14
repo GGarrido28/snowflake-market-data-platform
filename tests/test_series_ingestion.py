@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from kalshi.markets.series import Series
-from snow_py import orchestration
-from snow_py.scraping.series import SeriesScraper
+from market_data_platform.sources.kalshi.markets.series import Series
+from market_data_platform.orchestration import cli as orchestration
+from market_data_platform.pipelines.kalshi.series import SeriesScraper
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +14,7 @@ STAGING_SCHEMA_PATH = REPO_ROOT / "dbt" / "models" / "staging" / "schema.yml"
 
 
 class SeriesPaginationTests(unittest.TestCase):
-    @patch("kalshi.markets.series.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.markets.series.KalshiBase.__init__", return_value=None)
     def test_get_all_series_uses_pagination_when_requested(self, _mock_base_init):
         expected_rows = [{"ticker": "KXTEST"}]
 
@@ -33,8 +33,8 @@ class SeriesPaginationTests(unittest.TestCase):
             category="economics",
         )
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.series.Series")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.series.Series")
     def test_scraper_loads_all_series_pages(
         self,
         mock_series_class,
@@ -52,10 +52,10 @@ class SeriesPaginationTests(unittest.TestCase):
 
 
 class OrchestrationTests(unittest.TestCase):
-    @patch("snow_py.orchestration.logging")
-    @patch("snow_py.orchestration.EventsScraper")
-    @patch("snow_py.orchestration.SeriesScraper")
-    @patch("snow_py.orchestration.MarketsScraper")
+    @patch("market_data_platform.orchestration.cli.logging")
+    @patch("market_data_platform.orchestration.cli.EventsScraper")
+    @patch("market_data_platform.orchestration.cli.SeriesScraper")
+    @patch("market_data_platform.orchestration.cli.MarketsScraper")
     def test_run_all_scrapers_continues_after_constructor_failure(
         self,
         mock_markets_scraper,

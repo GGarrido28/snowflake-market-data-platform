@@ -3,12 +3,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from kalshi.events import DEFAULT_EVENTS_PAGE_SIZE, Events
-from snow_py.scraping.events import EventsScraper
+from market_data_platform.sources.kalshi.events import DEFAULT_EVENTS_PAGE_SIZE, Events
+from market_data_platform.pipelines.kalshi.events import EventsScraper
 
 
 class EventEndpointTests(unittest.TestCase):
-    @patch("kalshi.events.events.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.events.events.KalshiBase.__init__", return_value=None)
     def test_get_all_events_uses_pagination_limit_when_requested(self, _mock_base_init):
         expected_rows = [{"event_ticker": "KXTEST-25"}]
 
@@ -27,7 +27,7 @@ class EventEndpointTests(unittest.TestCase):
             series_ticker="KXTEST",
         )
 
-    @patch("kalshi.events.events.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.events.events.KalshiBase.__init__", return_value=None)
     def test_get_target_events_uses_exact_event_endpoint(self, _mock_base_init):
         event_payload = {"event_ticker": "KXMASTERS-25", "series_ticker": "KXMASTERS"}
 
@@ -39,7 +39,7 @@ class EventEndpointTests(unittest.TestCase):
         mock_get_event.assert_called_once_with("KXMASTERS-25")
         self.assertEqual(result, [event_payload])
 
-    @patch("kalshi.events.events.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.events.events.KalshiBase.__init__", return_value=None)
     def test_get_target_events_uses_series_scope(self, _mock_base_init):
         expected_rows = [{"event_ticker": "KXMASTERS-25", "series_ticker": "KXMASTERS"}]
 
@@ -58,21 +58,21 @@ class EventEndpointTests(unittest.TestCase):
 
 
 class EventsScraperTests(unittest.TestCase):
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_default_event_status_is_open(self, _mock_snowflake_manager):
         scraper = EventsScraper()
 
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(scraper._get_event_status(), "open")
 
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_all_event_status_removes_filter(self, _mock_snowflake_manager):
         scraper = EventsScraper()
 
         with patch.dict(os.environ, {"KALSHI_EVENTS_STATUS": "all"}, clear=True):
             self.assertIsNone(scraper._get_event_status())
 
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_scraper_requires_scope_when_all_status_is_configured(self, _mock_snowflake_manager):
         scraper = EventsScraper()
 
@@ -84,8 +84,8 @@ class EventsScraperTests(unittest.TestCase):
             ):
                 scraper._validate_event_scope(scraper._get_event_status(), *scraper._get_event_scope())
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.events.Events")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.events.Events")
     def test_scraper_loads_events_with_configured_status(self, mock_events_class, _mock_snowflake_manager):
         mock_events_class.return_value.get_target_events.return_value = [{"event_ticker": "KXTEST-25"}]
 
@@ -99,8 +99,8 @@ class EventsScraperTests(unittest.TestCase):
         )
         mock_store.assert_called_once_with([{"event_ticker": "KXTEST-25"}], "RAW_EVENTS", ["event_ticker"])
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.events.Events")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.events.Events")
     def test_scraper_loads_exact_event_when_event_scope_is_configured(
         self,
         mock_events_class,
@@ -126,8 +126,8 @@ class EventsScraperTests(unittest.TestCase):
         )
         mock_store.assert_called_once_with([{"event_ticker": "KXMASTERS-25"}], "RAW_EVENTS", ["event_ticker"])
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.events.Events")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.events.Events")
     def test_scraper_loads_events_for_every_series_ticker_returned_by_query_file(
         self,
         mock_events_class,
@@ -178,7 +178,7 @@ class EventsScraperTests(unittest.TestCase):
             ["event_ticker"],
         )
 
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_scraper_rejects_setting_more_than_one_scope_var(self, _mock_snowflake_manager):
         scraper = EventsScraper()
 
@@ -186,7 +186,7 @@ class EventsScraperTests(unittest.TestCase):
             os.environ,
             {
                 "KALSHI_EVENTS_EVENT_TICKER": "KXMASTERS-25",
-                "KALSHI_EVENTS_SERIES_QUERY_FILE": "snow_py/queries/events_mlb_series.sql",
+                "KALSHI_EVENTS_SERIES_QUERY_FILE": "src/market_data_platform/queries/kalshi/events_mlb_series.sql",
             },
             clear=True,
         ):

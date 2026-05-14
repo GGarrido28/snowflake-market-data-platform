@@ -5,3 +5,4 @@ snowflake-connector-python>=4.3.0
 matplotlib>=3.7
 pyarrow>=14.0
 pandas>=2.0
+tzdata>=2024.1

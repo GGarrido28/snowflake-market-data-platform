@@ -5,8 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "kalshi/**"
-      - "snow_py/**"
+      - "src/**"
       - "tests/**"
       - "dbt/models/**"
       - "requirements.txt"

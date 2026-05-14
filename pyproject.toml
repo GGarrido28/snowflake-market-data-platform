@@ -7,7 +7,7 @@ name = "snowflake-kalshi-market-data-platform"
 version = "0.1.0"
 description = "Kalshi data collection"
 readme = "README.md"
-requires-python = ">=3.1"
+requires-python = ">=3.10"
 license = "MIT"
 authors = [
     {name = "Gabe Garrido", email = "gabriel.garrido28@gmail.com"},
@@ -23,8 +23,16 @@ dependencies = [
     "cryptography>=46.0.5",
     "python-dotenv>=0.9.9",
     "snowflake-connector-python>=4.3.0",
+    "pandas>=2.0",
+    "tzdata>=2024.1",
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["kalshi*", "snow_py*"]
+where = ["src"]
+include = ["market_data_platform*"]
+
+[tool.setuptools.package-data]
+"market_data_platform.queries.kalshi" = ["*.sql"]
+
+[project.scripts]
+market-data = "market_data_platform.orchestration.cli:main"
