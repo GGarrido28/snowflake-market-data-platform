@@ -24,6 +24,7 @@ dbt/dbt_packages/
 
 # logs
 logs/
+response.json
 
 # analysis cache — pulled fresh from Snowflake each time, not committed
 analysis/data/
