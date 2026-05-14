@@ -29,12 +29,28 @@ Initialize Terraform:
 terraform -chdir=infra/terraform init
 ```
 
-## Bootstrap ECR
+## Deploy With Script
+
+The easiest path is the deploy script:
+
+```powershell
+.\scripts\deploy_mlb_teams_lambda.ps1 -Profile ggarrido -Region us-east-2
+```
+
+The script initializes Terraform, bootstraps ECR, logs Docker into ECR, builds and pushes the Lambda image, applies the full Terraform stack, and invokes a smoke test.
+
+If your SSO session has expired, refresh it first:
+
+```powershell
+aws sso login --profile ggarrido
+```
+
+## Manual Bootstrap ECR
 
 The Lambda function cannot be created until an image exists in ECR. Create the ECR repository first:
 
 ```powershell
-terraform -chdir=infra/terraform apply -target=aws_ecr_repository.mlb_teams
+terraform -chdir=infra/terraform apply "-target=aws_ecr_repository.mlb_teams"
 ```
 
 ## Build And Push The Lambda Image
@@ -48,11 +64,10 @@ $RepositoryUrl = terraform -chdir=infra/terraform output -raw ecr_repository_url
 $Registry = $RepositoryUrl.Split("/")[0]
 $ImageUri = "${RepositoryUrl}:${ImageTag}"
 
-aws ecr get-login-password --region $Region |
-  docker login --username AWS --password-stdin $Registry
+$Password = (aws ecr get-login-password --region $Region --profile ggarrido).Trim()
+$Password | docker login --username AWS --password-stdin $Registry
 
-docker buildx build --platform linux/amd64 -f aws/docker/Dockerfile.lambda -t $ImageUri .
-docker push $ImageUri
+docker buildx build --platform linux/amd64 -f aws/docker/Dockerfile.lambda -t $ImageUri --push .
 ```
 
 ## Deploy Lambda Resources
@@ -97,7 +112,6 @@ For code changes, repeat the image build and push with a new tag, then re-run Te
 ```powershell
 $ImageTag = git rev-parse --short HEAD
 $ImageUri = "${RepositoryUrl}:${ImageTag}"
-docker buildx build --platform linux/amd64 -f aws/docker/Dockerfile.lambda -t $ImageUri .
-docker push $ImageUri
+docker buildx build --platform linux/amd64 -f aws/docker/Dockerfile.lambda -t $ImageUri --push .
 terraform -chdir=infra/terraform apply -var "lambda_image_tag=$ImageTag"
 ```
