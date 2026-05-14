@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 from market_data_platform.sources.mlb import Teams
-from market_data_platform.warehouse import S3JsonLinesWriter
+from market_data_platform.warehouse.s3 import S3JsonLinesWriter
 
 
 logging.basicConfig(level=logging.INFO)
