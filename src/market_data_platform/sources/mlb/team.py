@@ -1,12 +1,11 @@
-from __future__ import annotations
-
 import logging
 from typing import Any
 
 import requests
 
 
-LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 DEFAULT_SPORT_ID = 1
 DEFAULT_TIMEOUT_SECONDS = 30
 MLB_STATS_API_BASE_URL = "https://statsapi.mlb.com/api/v1"
@@ -34,5 +33,5 @@ class Teams:
         )
         response.raise_for_status()
         teams = response.json().get("teams", [])
-        LOGGER.info("Fetched %s MLB team(s) from the Stats API.", len(teams))
+        logging.info("Fetched %s MLB team(s) from the Stats API.", len(teams))
         return teams
