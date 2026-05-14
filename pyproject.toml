@@ -23,6 +23,8 @@ dependencies = [
     "cryptography>=46.0.5",
     "python-dotenv>=0.9.9",
     "snowflake-connector-python>=4.3.0",
+    "pandas>=2.0",
+    "tzdata>=2024.1",
 ]
 
 [tool.setuptools.packages.find]
