@@ -142,11 +142,11 @@ The first AWS-oriented MLB pipeline fetches public MLB team metadata and lands n
 Configure the target bucket with either a source-specific env var or a shared Snowflake landing var:
 
 ```bash
-MLB_TEAMS_S3_BUCKET=my-snowflake-landing-bucket
+MLB_TEAMS_S3_BUCKET=snowflake-kalshi-project
 MLB_TEAMS_S3_PREFIX=raw/mlb/teams
 ```
 
-`SNOWFLAKE_S3_BUCKET` and `SNOWFLAKE_S3_PREFIX` are also supported fallbacks. The Lambda entrypoint is [`aws/lambdas/mlb_teams/handler.py`](./aws/lambdas/mlb_teams/handler.py), which calls `market_data_platform.pipelines.mlb.teams_pipeline.run(event)`.
+`SNOWFLAKE_S3_BUCKET` and `SNOWFLAKE_S3_PREFIX` are also supported fallbacks. S3 folders are object key prefixes, so the pipeline can write under `raw/mlb/teams/...` even if only `raw/mlb` is visible before the first run. The Lambda entrypoint is [`aws/lambdas/mlb_teams/handler.py`](./aws/lambdas/mlb_teams/handler.py), which calls `market_data_platform.pipelines.mlb.teams_pipeline.run(event)`.
 
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:
