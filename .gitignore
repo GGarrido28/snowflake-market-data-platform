@@ -24,6 +24,14 @@ dbt/dbt_packages/
 
 # logs
 logs/
+response.json
 
 # analysis cache — pulled fresh from Snowflake each time, not committed
 analysis/data/
+
+# terraform local state and variables
+infra/terraform/.terraform/
+infra/terraform/terraform.tfvars
+infra/terraform/*.auto.tfvars
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*

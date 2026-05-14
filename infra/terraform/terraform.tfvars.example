@@ -1,0 +1,13 @@
+aws_region = "us-east-2"
+
+project_name = "snowflake-kalshi"
+environment  = "dev"
+
+s3_bucket_name = "snowflake-kalshi-project"
+s3_prefix      = "raw/mlb/teams"
+
+lambda_image_tag       = "latest"
+mlb_teams_sport_id     = "1"
+lambda_timeout_seconds = 60
+lambda_memory_mb       = 512
+log_retention_days     = 14
