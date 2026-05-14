@@ -26,8 +26,8 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["src", "."]
-include = ["market_data_platform*", "kalshi*", "snow_py*"]
+where = ["src"]
+include = ["market_data_platform*"]
 
 [tool.setuptools.package-data]
 "market_data_platform.queries.kalshi" = ["*.sql"]
