@@ -3,12 +3,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from kalshi.markets import Markets
-from snow_py.scraping.markets import MarketsScraper
+from market_data_platform.sources.kalshi.markets import Markets
+from market_data_platform.pipelines.kalshi.markets import MarketsScraper
 
 
 class MarketEndpointTests(unittest.TestCase):
-    @patch("kalshi.markets.markets.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
     def test_get_target_markets_uses_single_market_endpoint(self, _mock_base_init):
         market_payload = {"ticker": "KXTEST", "event_ticker": "EVT"}
 
@@ -20,7 +20,7 @@ class MarketEndpointTests(unittest.TestCase):
         mock_get_market.assert_called_once_with("KXTEST")
         self.assertEqual(result, [market_payload])
 
-    @patch("kalshi.markets.markets.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
     def test_get_target_markets_uses_event_filter(self, _mock_base_init):
         expected_rows = [{"ticker": "KXTEST", "event_ticker": "EVT"}]
 
@@ -36,7 +36,7 @@ class MarketEndpointTests(unittest.TestCase):
         )
         self.assertEqual(result, expected_rows)
 
-    @patch("kalshi.markets.markets.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
     def test_get_all_markets_uses_pagination_limit_when_requested(self, _mock_base_init):
         expected_rows = [{"ticker": "KXTEST"}]
 
@@ -54,7 +54,7 @@ class MarketEndpointTests(unittest.TestCase):
             status="open",
         )
 
-    @patch("kalshi.markets.markets.KalshiBase.__init__", return_value=None)
+    @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
     def test_get_market_endpoints_uses_market_ticker_for_orderbooks_and_trades(self, _mock_base_init):
         markets = Markets()
         markets.markets = []
@@ -80,7 +80,7 @@ class MarketEndpointTests(unittest.TestCase):
 
 
 class MarketsScraperTests(unittest.TestCase):
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_scraper_requires_a_target_scope(self, _mock_snowflake_manager):
         scraper = MarketsScraper()
 
@@ -92,8 +92,8 @@ class MarketsScraperTests(unittest.TestCase):
             ):
                 scraper._get_market_scope()
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.markets.Markets")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.markets.Markets")
     def test_scraper_loads_market_payloads(self, mock_markets_class, _mock_snowflake_manager):
         mock_markets = mock_markets_class.return_value
         mock_markets.get_target_markets.return_value = [{"ticker": "KXTEST"}]
@@ -124,8 +124,8 @@ class MarketsScraperTests(unittest.TestCase):
             ["trade_id"],
         )
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.markets.Markets")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.markets.Markets")
     def test_scraper_recreates_orderbook_table_when_schema_changes(
         self,
         mock_markets_class,
@@ -160,8 +160,8 @@ class MarketsScraperTests(unittest.TestCase):
             delete=True,
         )
 
-    @patch("snow_py.base.SnowflakeManager")
-    @patch("snow_py.scraping.markets.Markets")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.kalshi.markets.Markets")
     def test_scraper_loads_markets_for_every_event_ticker_returned_by_query_file(
         self,
         mock_markets_class,
@@ -215,7 +215,7 @@ class MarketsScraperTests(unittest.TestCase):
             ["ticker"],
         )
 
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_scraper_rejects_setting_more_than_one_scope_var(self, _mock_snowflake_manager):
         scraper = MarketsScraper()
 
@@ -223,7 +223,7 @@ class MarketsScraperTests(unittest.TestCase):
             os.environ,
             {
                 "KALSHI_EVENT_TICKER": "EVT",
-                "KALSHI_MARKETS_EVENT_QUERY_FILE": "snow_py/queries/markets_mlb_events.sql",
+                "KALSHI_MARKETS_EVENT_QUERY_FILE": "src/market_data_platform/queries/kalshi/markets_mlb_events.sql",
             },
             clear=True,
         ):

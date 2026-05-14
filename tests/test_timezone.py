@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from snow_py.timezone import utc_to_eastern
+from market_data_platform.utils.timezone import utc_to_eastern
 
 
 EASTERN = ZoneInfo("America/New_York")

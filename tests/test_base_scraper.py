@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from snow_py.base import Scraper
+from market_data_platform.pipelines.base import Scraper
 
 
 class DummyScraper(Scraper):
@@ -10,7 +10,7 @@ class DummyScraper(Scraper):
 
 
 class ScraperStorageTests(unittest.TestCase):
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_store_data_in_snowflake_uses_upsert_for_existing_keyed_tables(self, mock_snowflake_manager):
         manager = mock_snowflake_manager.return_value
         manager.check_table_exists.return_value = True
@@ -32,7 +32,7 @@ class ScraperStorageTests(unittest.TestCase):
             return_error_msg=True,
         )
 
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_store_data_in_snowflake_uses_upsert_after_creating_keyed_tables(self, mock_snowflake_manager):
         manager = mock_snowflake_manager.return_value
         manager.check_table_exists.return_value = False
@@ -61,7 +61,7 @@ class ScraperStorageTests(unittest.TestCase):
             return_error_msg=True,
         )
 
-    @patch("snow_py.base.SnowflakeManager")
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_store_data_in_snowflake_keeps_non_keyed_loads_insert_only(self, mock_snowflake_manager):
         manager = mock_snowflake_manager.return_value
         manager.check_table_exists.return_value = True

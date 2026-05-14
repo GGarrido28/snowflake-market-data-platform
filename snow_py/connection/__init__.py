@@ -1,3 +1,3 @@
-from snow_py.connection.snowflake_manager import SnowflakeManager
+from market_data_platform.warehouse import SnowflakeManager
 
 __all__ = ["SnowflakeManager"]

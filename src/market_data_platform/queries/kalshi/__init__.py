@@ -1,0 +1,1 @@
+"""Kalshi ingestion query files."""

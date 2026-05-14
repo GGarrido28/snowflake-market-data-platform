@@ -3,8 +3,11 @@
 A data pipeline that ingests Kalshi MLB prediction market data into Snowflake and transforms it with dbt. The output answers a specific question: across MLB market types (totals, spreads, moneylines), how does price drift between market-open and market-close differ, and how does liquidity, measured by trade volume and orderbook depth, correlate with that drift? Stack: Python, Snowflake, dbt.
 
 # Project Structure
-- `kalshi`: Contains the main code for data scraping from Kalshi API.
-- `snow_py`: Contains the code for data collection, modeling, transformation, and analysis in Snowflake.
+- `src/market_data_platform`: Main Python package for sources, ingestion pipelines, Snowflake loading, configuration, and orchestration.
+- `src/market_data_platform/sources`: Source-specific API client code, currently Kalshi with MLB scaffolding ready for the next source.
+- `src/market_data_platform/pipelines`: Source-specific ingestion workflows that load raw Snowflake tables.
+- `src/market_data_platform/warehouse`: Snowflake connection and loading utilities.
+- `kalshi` and `snow_py`: Compatibility wrappers for older imports and script paths.
 - `dbt`: Local dbt project for Snowflake transformations and analytics models.
 - `analysis`: Jupyter notebooks for EDA and visualizations. See [`analysis/README.md`](./analysis/README.md).
 - `ai`: Public AI-facing artifacts, including a display copy of the Codex skill used for repo change workflows.
@@ -66,11 +69,11 @@ DBT_SOURCE_DATABASE=PROD
 DBT_SOURCE_SCHEMA=RAW
 ```
 
-The `SNOWFLAKE_*` settings match the Python connection code in `snow_py.connection.config`. Snowflake requires key-pair auth here because account-wide MFA enforcement blocks password logins for human users; generate an RSA keypair, register the public key on your Snowflake user with `ALTER USER <you> SET RSA_PUBLIC_KEY='...'`, and point `SNOWFLAKE_PRIVATE_KEY_PATH` at the `.p8` private key file. Leave `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` blank if the key is unencrypted.
+The `SNOWFLAKE_*` settings match the Python connection code in `market_data_platform.config.settings`. Snowflake requires key-pair auth here because account-wide MFA enforcement blocks password logins for human users; generate an RSA keypair, register the public key on your Snowflake user with `ALTER USER <you> SET RSA_PUBLIC_KEY='...'`, and point `SNOWFLAKE_PRIVATE_KEY_PATH` at the `.p8` private key file. Leave `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` blank if the key is unencrypted.
 
 ## Markets Scraper Scope
 The markets scraper is intentionally scoped now so it does not try to crawl every Kalshi market.
-Set exactly one of these in your root `.env` before running `snow_py/scraping/markets.py`:
+Set exactly one of these in your root `.env` before running the market scraper:
 
 ```bash
 KALSHI_EVENT_TICKER=KXMLBTOTAL-26APR111310MIADET
@@ -85,7 +88,7 @@ KALSHI_MARKET_TICKER=KXMLBTOTAL-26APR111310MIADET-14
 To backfill markets for multiple events at once, point at a SQL file (absolute path, or relative to the repo root) whose result set returns an `event_ticker` column — one row per event to scrape:
 
 ```bash
-KALSHI_MARKETS_EVENT_QUERY_FILE=snow_py/queries/markets_mlb_events.sql
+KALSHI_MARKETS_EVENT_QUERY_FILE=src/market_data_platform/queries/kalshi/markets_mlb_events.sql
 ```
 
 The scraper runs the query against Snowflake, then fetches markets + orderbooks + trades for each returned event ticker. Markets scraping is expensive (orderbook and trades are called per market), so keep the query narrow until you know how many markets each event produces. The three scope env vars are mutually exclusive — set at most one.
@@ -118,10 +121,22 @@ KALSHI_EVENTS_SERIES_TICKER=KXMASTERS
 To backfill multiple series at once, point at a SQL file (absolute path, or relative to the repo root) whose result set returns a `ticker` column — one row per series to scrape:
 
 ```bash
-KALSHI_EVENTS_SERIES_QUERY_FILE=snow_py/queries/events_mlb_series.sql
+KALSHI_EVENTS_SERIES_QUERY_FILE=src/market_data_platform/queries/kalshi/events_mlb_series.sql
 ```
 
 The scraper runs the query against Snowflake, then fetches Kalshi events for each returned series ticker. The three scope env vars are mutually exclusive — set at most one.
+
+## Python Scraper CLI
+Install the package in editable mode, then run the orchestration CLI:
+
+```bash
+pip install -e .
+market-data market --event-ticker KXMLBTOTAL-26APR111310MIADET
+market-data events --series-ticker KXMLBTOTAL
+market-data series --ticker KXMLBTOTAL
+```
+
+The older `python -m snow_py.orchestration ...` entrypoint remains available through compatibility wrappers.
 
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:
