@@ -8,7 +8,7 @@ from market_data_platform.orchestration import cli as orchestration
 from market_data_platform.pipelines.kalshi.series import SeriesScraper
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SERIES_SQL_PATH = REPO_ROOT / "dbt" / "models" / "staging" / "stg_kalshi_series.sql"
 STAGING_SCHEMA_PATH = REPO_ROOT / "dbt" / "models" / "staging" / "schema.yml"
 
