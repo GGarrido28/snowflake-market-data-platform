@@ -17,7 +17,7 @@ s3://snowflake-kalshi-project/raw/mlb/teams/
 
 ## Configure Terraform
 
-Copy the example variables file and adjust the AWS region if needed:
+Copy the example variables file. This project uses `us-east-2` for AWS resources:
 
 ```powershell
 Copy-Item infra/terraform/terraform.tfvars.example infra/terraform/terraform.tfvars
@@ -42,7 +42,7 @@ terraform -chdir=infra/terraform apply -target=aws_ecr_repository.mlb_teams
 Use the current Git commit as the image tag so Terraform can detect future image changes:
 
 ```powershell
-$Region = "us-east-1"
+$Region = "us-east-2"
 $ImageTag = git rev-parse --short HEAD
 $RepositoryUrl = terraform -chdir=infra/terraform output -raw ecr_repository_url
 $Registry = $RepositoryUrl.Split("/")[0]
