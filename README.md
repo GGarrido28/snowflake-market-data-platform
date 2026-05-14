@@ -5,8 +5,9 @@ A data pipeline that ingests Kalshi MLB prediction market data into Snowflake an
 # Project Structure
 - `src/market_data_platform`: Main Python package for sources, ingestion pipelines, Snowflake loading, configuration, and orchestration.
 - `src/market_data_platform/sources`: Source-specific API client code, currently Kalshi with MLB scaffolding ready for the next source.
-- `src/market_data_platform/pipelines`: Source-specific ingestion workflows that load raw Snowflake tables.
-- `src/market_data_platform/warehouse`: Snowflake connection and loading utilities.
+- `src/market_data_platform/pipelines`: Source-specific ingestion workflows that load raw Snowflake tables or Snowflake-ready S3 landing files.
+- `src/market_data_platform/warehouse`: Snowflake connection, S3 landing, and loading utilities.
+- `aws/lambdas`: Thin AWS Lambda handlers that dispatch into shared package pipeline code.
 - `dbt`: Local dbt project for Snowflake transformations and analytics models.
 - `analysis`: Jupyter notebooks for EDA and visualizations. See [`analysis/README.md`](./analysis/README.md).
 - `ai`: Public AI-facing artifacts, including a display copy of the Codex skill used for repo change workflows.
@@ -134,6 +135,18 @@ market-data market --event-ticker KXMLBTOTAL-26APR111310MIADET
 market-data events --series-ticker KXMLBTOTAL
 market-data series --ticker KXMLBTOTAL
 ```
+
+## MLB Teams Lambda S3 Landing
+The first AWS-oriented MLB pipeline fetches public MLB team metadata and lands newline-delimited JSON in the S3 bucket used for Snowflake ingestion.
+
+Configure the target bucket with either a source-specific env var or a shared Snowflake landing var:
+
+```bash
+MLB_TEAMS_S3_BUCKET=my-snowflake-landing-bucket
+MLB_TEAMS_S3_PREFIX=raw/mlb/teams
+```
+
+`SNOWFLAKE_S3_BUCKET` and `SNOWFLAKE_S3_PREFIX` are also supported fallbacks. The Lambda entrypoint is [`aws/lambdas/mlb_teams/handler.py`](./aws/lambdas/mlb_teams/handler.py), which calls `market_data_platform.pipelines.mlb.teams_pipeline.run(event)`.
 
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:
