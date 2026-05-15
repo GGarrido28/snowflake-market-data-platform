@@ -1,0 +1,89 @@
+param(
+    [string]$Profile = "ggarrido",
+    [string]$Region = "us-east-2",
+    [string]$TerraformDir = "infra/terraform",
+    [switch]$SkipInit,
+    [switch]$PlanOnly,
+    [switch]$AutoApprove,
+    [switch]$SkipVerify
+)
+
+$ErrorActionPreference = "Stop"
+$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$TerraformPath = (Resolve-Path (Join-Path $RepoRoot $TerraformDir)).Path
+$TerraformChdir = "-chdir=$TerraformPath"
+
+function Require-Command {
+    param([string]$Name)
+
+    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+        throw "Required command '$Name' was not found on PATH."
+    }
+}
+
+function Get-ImageTagFromUri {
+    param([Parameter(Mandatory = $true)][string]$ImageUri)
+
+    $LastColon = $ImageUri.LastIndexOf(":")
+    if ($LastColon -lt 0 -or $LastColon -eq ($ImageUri.Length - 1)) {
+        throw "Could not parse an image tag from Terraform output lambda_image_uri: '$ImageUri'."
+    }
+
+    return $ImageUri.Substring($LastColon + 1)
+}
+
+if ($PlanOnly -and $AutoApprove) {
+    throw "Use either -PlanOnly or -AutoApprove, not both."
+}
+
+Require-Command "aws"
+Require-Command "terraform"
+
+$env:AWS_PROFILE = $Profile
+$env:AWS_REGION = $Region
+
+Write-Host "Using AWS profile '$Profile' in region '$Region'."
+aws sts get-caller-identity --profile $Profile | Write-Host
+
+if (-not $SkipInit) {
+    terraform $TerraformChdir init
+}
+
+$LambdaImageUri = (terraform $TerraformChdir output -raw lambda_image_uri).Trim()
+$ImageTag = Get-ImageTagFromUri -ImageUri $LambdaImageUri
+$LambdaImageTagVar = "lambda_image_tag=$ImageTag"
+Write-Host "Preserving deployed Lambda image tag '$ImageTag' from Terraform state."
+
+if ($PlanOnly) {
+    terraform $TerraformChdir plan -var $LambdaImageTagVar
+    return
+}
+
+$PlanPath = Join-Path ([System.IO.Path]::GetTempPath()) "mlb-teams-scheduler-$PID.tfplan"
+try {
+    terraform $TerraformChdir plan "-out=$PlanPath" -var $LambdaImageTagVar
+
+    if (-not $AutoApprove) {
+        $Confirmation = Read-Host "Apply this scheduler plan? Type 'yes' to continue"
+        if ($Confirmation -ne "yes") {
+            Write-Host "Apply cancelled."
+            return
+        }
+    }
+
+    terraform $TerraformChdir apply $PlanPath
+
+    if (-not $SkipVerify) {
+        $ScheduleName = (terraform $TerraformChdir output -raw mlb_teams_schedule_name).Trim()
+        Write-Host "Verifying EventBridge Scheduler schedule '$ScheduleName'."
+        aws scheduler get-schedule `
+            --name $ScheduleName `
+            --group-name default `
+            --region $Region `
+            --profile $Profile | Write-Host
+    }
+} finally {
+    if (Test-Path $PlanPath) {
+        Remove-Item -LiteralPath $PlanPath -Force
+    }
+}

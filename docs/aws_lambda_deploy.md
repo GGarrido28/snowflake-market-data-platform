@@ -41,6 +41,22 @@ The easiest path is the deploy script:
 
 The script initializes Terraform, bootstraps ECR, logs Docker into ECR, builds and pushes the Lambda image, applies the full Terraform stack, and invokes a smoke test. Run it from PowerShell.
 
+## Deploy Scheduler Only
+
+After the Lambda image has already been deployed, use the scheduler script to plan and apply Terraform without rebuilding or pushing a container image:
+
+```powershell
+.\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2
+```
+
+The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. To preview without applying, run:
+
+```powershell
+.\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2 -PlanOnly
+```
+
+Use `-AutoApprove` only when you want the script to apply the saved Terraform plan without an interactive confirmation.
+
 If your SSO session has expired, refresh it first:
 
 ```powershell
