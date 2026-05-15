@@ -40,6 +40,29 @@ variable "mlb_teams_sport_id" {
   default     = "1"
 }
 
+variable "mlb_teams_schedule_expression" {
+  description = "EventBridge Scheduler expression for the MLB teams Lambda."
+  type        = string
+  default     = "cron(0 6 * * ? *)"
+}
+
+variable "mlb_teams_schedule_timezone" {
+  description = "Time zone used to evaluate the MLB teams schedule expression."
+  type        = string
+  default     = "America/Chicago"
+}
+
+variable "mlb_teams_schedule_state" {
+  description = "Whether the MLB teams EventBridge Scheduler schedule is enabled."
+  type        = string
+  default     = "ENABLED"
+
+  validation {
+    condition     = contains(["ENABLED", "DISABLED"], var.mlb_teams_schedule_state)
+    error_message = "mlb_teams_schedule_state must be ENABLED or DISABLED."
+  }
+}
+
 variable "lambda_timeout_seconds" {
   description = "Timeout for the MLB teams Lambda function."
   type        = number

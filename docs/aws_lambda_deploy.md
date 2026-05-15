@@ -29,6 +29,8 @@ Initialize Terraform:
 terraform -chdir=infra/terraform init
 ```
 
+The MLB teams schedule defaults to daily at 6:00 AM America/Chicago. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "DISABLED"` in `terraform.tfvars` if you need different behavior before applying.
+
 ## Deploy With Script
 
 The easiest path is the deploy script:
@@ -38,6 +40,22 @@ The easiest path is the deploy script:
 ```
 
 The script initializes Terraform, bootstraps ECR, logs Docker into ECR, builds and pushes the Lambda image, applies the full Terraform stack, and invokes a smoke test. Run it from PowerShell.
+
+## Deploy Scheduler Only
+
+After the Lambda image has already been deployed, use the scheduler script to plan and apply Terraform without rebuilding or pushing a container image:
+
+```powershell
+.\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2
+```
+
+The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. To preview without applying, run:
+
+```powershell
+.\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2 -PlanOnly
+```
+
+Use `-AutoApprove` only when you want the script to apply the saved Terraform plan without an interactive confirmation.
 
 If your SSO session has expired, refresh it first:
 
@@ -85,6 +103,7 @@ Terraform creates:
 - S3 write policy scoped to `snowflake-kalshi-project/raw/mlb/teams/*`.
 - CloudWatch log group.
 - Lambda function using the pushed container image.
+- EventBridge Scheduler schedule for the Lambda, enabled by default at 6:00 AM America/Chicago.
 
 ## Invoke A Smoke Test
 

@@ -8,6 +8,9 @@ s3_prefix      = "raw/mlb/teams"
 
 lambda_image_tag       = "latest"
 mlb_teams_sport_id     = "1"
+mlb_teams_schedule_expression = "cron(0 6 * * ? *)"
+mlb_teams_schedule_timezone   = "America/Chicago"
+mlb_teams_schedule_state      = "ENABLED"
 lambda_timeout_seconds = 60
 lambda_memory_mb       = 512
 log_retention_days     = 14

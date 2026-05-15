@@ -17,3 +17,8 @@ output "landing_s3_uri" {
   description = "S3 prefix where the MLB teams Lambda writes NDJSON files."
   value       = "s3://${var.s3_bucket_name}/${local.s3_prefix}/"
 }
+
+output "mlb_teams_schedule_name" {
+  description = "EventBridge Scheduler schedule name for the MLB teams Lambda."
+  value       = aws_scheduler_schedule.mlb_teams.name
+}
