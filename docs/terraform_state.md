@@ -5,7 +5,7 @@ Terraform configuration is tracked in Git. Terraform state is operational metada
 This repo stores Terraform state in S3:
 
 ```text
-bucket: snowflake-kalshi-terraform-state-893072528957
+bucket: backend-893072528957-us-east-2-an
 key:    snowflake-market-data-platform/dev/terraform.tfstate
 region: us-east-2
 lock:   S3 native lock file

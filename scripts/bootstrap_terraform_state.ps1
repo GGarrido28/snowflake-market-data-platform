@@ -1,7 +1,7 @@
 param(
     [string]$Profile = "ggarrido",
     [string]$Region = "us-east-2",
-    [string]$Bucket = "snowflake-kalshi-terraform-state-893072528957"
+    [string]$Bucket = "backend-893072528957-us-east-2-an"
 )
 
 $ErrorActionPreference = "Stop"
