@@ -54,9 +54,9 @@ After migration, use the usual Terraform loop:
 $LambdaImageUri = (terraform -chdir=infra/terraform output -raw lambda_image_uri).Trim()
 $LambdaImageTag = $LambdaImageUri.Split(":")[-1]
 
-terraform -chdir=infra/terraform plan -out=tfplan -var "lambda_image_tag=$LambdaImageTag"
-terraform -chdir=infra/terraform show -no-color tfplan
-terraform -chdir=infra/terraform apply tfplan
+terraform -chdir=infra/terraform plan -out=plan.tfplan -var "lambda_image_tag=$LambdaImageTag"
+terraform -chdir=infra/terraform show -no-color plan.tfplan
+terraform -chdir=infra/terraform apply plan.tfplan
 terraform -chdir=infra/terraform plan -var "lambda_image_tag=$LambdaImageTag"
 ```
 
