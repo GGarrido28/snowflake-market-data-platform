@@ -29,6 +29,8 @@ Initialize Terraform:
 terraform -chdir=infra/terraform init
 ```
 
+The MLB teams schedule defaults to daily at 6:00 AM America/Chicago. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "DISABLED"` in `terraform.tfvars` if you need different behavior before applying.
+
 ## Deploy With Script
 
 The easiest path is the deploy script:
@@ -85,6 +87,7 @@ Terraform creates:
 - S3 write policy scoped to `snowflake-kalshi-project/raw/mlb/teams/*`.
 - CloudWatch log group.
 - Lambda function using the pushed container image.
+- EventBridge Scheduler schedule for the Lambda, enabled by default at 6:00 AM America/Chicago.
 
 ## Invoke A Smoke Test
 

@@ -47,3 +47,43 @@ resource "aws_iam_role_policy_attachment" "mlb_teams_s3_write" {
   role       = aws_iam_role.mlb_teams_lambda.name
   policy_arn = aws_iam_policy.mlb_teams_s3_write.arn
 }
+
+data "aws_iam_policy_document" "scheduler_assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["scheduler.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "mlb_teams_scheduler" {
+  name               = "${local.mlb_teams_name}-scheduler-role"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
+}
+
+data "aws_iam_policy_document" "mlb_teams_scheduler_invoke" {
+  statement {
+    sid    = "InvokeMlbTeamsLambda"
+    effect = "Allow"
+
+    actions = ["lambda:InvokeFunction"]
+
+    resources = [aws_lambda_function.mlb_teams.arn]
+  }
+}
+
+resource "aws_iam_policy" "mlb_teams_scheduler_invoke" {
+  name        = "${local.mlb_teams_name}-scheduler-invoke"
+  description = "Allows EventBridge Scheduler to invoke the MLB teams Lambda."
+  policy      = data.aws_iam_policy_document.mlb_teams_scheduler_invoke.json
+}
+
+resource "aws_iam_role_policy_attachment" "mlb_teams_scheduler_invoke" {
+  role       = aws_iam_role.mlb_teams_scheduler.name
+  policy_arn = aws_iam_policy.mlb_teams_scheduler_invoke.arn
+}
