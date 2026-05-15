@@ -149,7 +149,7 @@ MLB_TEAMS_S3_PREFIX=raw/mlb/teams
 
 `SNOWFLAKE_S3_BUCKET` and `SNOWFLAKE_S3_PREFIX` are also supported fallbacks. S3 folders are object key prefixes, so the pipeline can write under `raw/mlb/teams/...` even if only `raw/mlb` is visible before the first run. The Lambda entrypoint is [`aws/lambdas/mlb_teams/handler.py`](./aws/lambdas/mlb_teams/handler.py), which calls `market_data_platform.pipelines.mlb.teams_pipeline.run(event)`.
 
-Deployment instructions live in [`docs/aws_lambda_deploy.md`](./docs/aws_lambda_deploy.md).
+Deployment instructions live in [`docs/aws_lambda_deploy.md`](./docs/aws_lambda_deploy.md). The EventBridge schedule is intentionally disabled by default because MLB teams is low-change dimension data; Snowpipe setup and the manual refresh runbook live in [`docs/mlb_teams_snowpipe.md`](./docs/mlb_teams_snowpipe.md).
 
 ## 3. Run dbt locally
 From the repo root, first load the root `.env` into your PowerShell session:
@@ -174,6 +174,7 @@ The scaffold assumes you land raw Kalshi tables in Snowflake with the current Py
 - `source('kalshi_raw', 'market_orderbooks')` -> `stg_kalshi_market_orderbooks`
 - `source('kalshi_raw', 'market_trades')` -> `stg_kalshi_market_trades`
 - `int_kalshi_markets` gives you a clean starting relation for downstream marts
+- `source('mlb_raw', 'teams')` -> `stg_mlb_teams` -> `dim_mlb_teams`
 
 If your physical raw table names or schema differ, update [`dbt/models/sources.yml`](./dbt/models/sources.yml).
 

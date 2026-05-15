@@ -53,14 +53,26 @@ variable "mlb_teams_schedule_timezone" {
 }
 
 variable "mlb_teams_schedule_state" {
-  description = "Whether the MLB teams EventBridge Scheduler schedule is enabled."
+  description = "Whether the MLB teams EventBridge Scheduler schedule is enabled. Defaults disabled because MLB teams is low-change dimension data."
   type        = string
-  default     = "ENABLED"
+  default     = "DISABLED"
 
   validation {
     condition     = contains(["ENABLED", "DISABLED"], var.mlb_teams_schedule_state)
     error_message = "mlb_teams_schedule_state must be ENABLED or DISABLED."
   }
+}
+
+variable "snowflake_storage_aws_iam_user_arn" {
+  description = "Snowflake STORAGE_AWS_IAM_USER_ARN from DESC INTEGRATION. Leave null until the storage integration exists."
+  type        = string
+  default     = null
+}
+
+variable "snowflake_storage_aws_external_id" {
+  description = "Snowflake STORAGE_AWS_EXTERNAL_ID from DESC INTEGRATION. Leave null until the storage integration exists."
+  type        = string
+  default     = null
 }
 
 variable "lambda_timeout_seconds" {

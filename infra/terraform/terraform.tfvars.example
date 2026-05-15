@@ -10,7 +10,14 @@ lambda_image_tag       = "latest"
 mlb_teams_sport_id     = "1"
 mlb_teams_schedule_expression = "cron(0 6 * * ? *)"
 mlb_teams_schedule_timezone   = "America/Chicago"
-mlb_teams_schedule_state      = "ENABLED"
+# Intentionally disabled: MLB teams is low-change reference data. Run the
+# Lambda manually when this dimension needs a refresh.
+mlb_teams_schedule_state      = "DISABLED"
 lambda_timeout_seconds = 60
 lambda_memory_mb       = 512
 log_retention_days     = 14
+
+# Fill these after running DESC INTEGRATION in Snowflake, then re-apply
+# Terraform to replace the initial placeholder trust relationship.
+snowflake_storage_aws_iam_user_arn = null
+snowflake_storage_aws_external_id  = null

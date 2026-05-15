@@ -251,3 +251,75 @@ sources:
           - name: last_updated_ts
             description: Most recent series metadata update timestamp returned by the API.
             data_type: timestamp string
+  - name: mlb_raw
+    description: Raw MLB reference data landed in Snowflake by S3 and Snowpipe.
+    database: "{{ env_var('DBT_SOURCE_DATABASE', 'PROD') }}"
+    schema: "{{ env_var('DBT_SOURCE_SCHEMA', 'RAW') }}"
+    tables:
+      - name: teams
+        identifier: RAW_MLB_TEAMS
+        description: Append-only MLB team metadata snapshots loaded from S3 JSON Lines files by Snowpipe.
+        columns:
+          - name: team_id
+            description: Stable MLB Stats API team identifier.
+            data_type: number
+          - name: name
+            description: Full team name returned by the MLB Stats API.
+            data_type: string
+          - name: team_code
+            description: MLB team code returned by the MLB Stats API.
+            data_type: string
+          - name: abbreviation
+            description: Official team abbreviation.
+            data_type: string
+          - name: team_name
+            description: Short team nickname.
+            data_type: string
+          - name: location_name
+            description: Team location name.
+            data_type: string
+          - name: first_year_of_play
+            description: First year of play reported by the MLB Stats API.
+            data_type: number
+          - name: sport_id
+            description: MLB Stats API sport identifier.
+            data_type: number
+          - name: sport_name
+            description: Sport name returned by the MLB Stats API.
+            data_type: string
+          - name: league_id
+            description: MLB Stats API league identifier.
+            data_type: number
+          - name: league_name
+            description: League name returned by the MLB Stats API.
+            data_type: string
+          - name: division_id
+            description: MLB Stats API division identifier.
+            data_type: number
+          - name: division_name
+            description: Division name returned by the MLB Stats API.
+            data_type: string
+          - name: venue_id
+            description: MLB Stats API venue identifier.
+            data_type: number
+          - name: venue_name
+            description: Venue name returned by the MLB Stats API.
+            data_type: string
+          - name: active
+            description: Whether the team is active in the MLB Stats API response.
+            data_type: boolean
+          - name: ingested_at
+            description: Timestamp assigned by the Lambda when the source file was written to S3.
+            data_type: timestamp
+          - name: raw_payload
+            description: Original MLB Stats API team payload.
+            data_type: object
+          - name: source_file
+            description: S3 object key loaded by Snowpipe.
+            data_type: string
+          - name: source_row_number
+            description: Row number within the loaded S3 object.
+            data_type: number
+          - name: snowpipe_loaded_at
+            description: Timestamp Snowflake recorded when scanning the source file.
+            data_type: timestamp

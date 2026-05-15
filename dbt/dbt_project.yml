@@ -35,6 +35,10 @@ models:
       +schema: KALSHI
       +tags:
         - mart
+      mlb:
+        +schema: MLB
+        +tags:
+          - mlb
 
 seeds:
   snowflake_market_data_platform:
