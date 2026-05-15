@@ -6,8 +6,9 @@ This repo deploys the MLB teams job as an AWS Lambda container image backed by E
 
 - AWS CLI authenticated to the target account.
 - Docker Desktop or another Docker engine with `buildx`.
-- Terraform `>= 1.6`.
+- Terraform `>= 1.10`.
 - Existing S3 landing bucket: `snowflake-kalshi-project`.
+- Terraform remote state bootstrapped as described in [`terraform_state.md`](./terraform_state.md).
 
 The first Lambda writes to:
 
