@@ -21,6 +21,32 @@ function Require-Command {
     }
 }
 
+function Invoke-CheckedCommand {
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
+    )
+
+    & $Command @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Command failed with exit code ${LASTEXITCODE}: $Command $($Arguments -join ' ')"
+    }
+}
+
+function Invoke-CheckedCommandOutput {
+    param(
+        [Parameter(Mandatory = $true)][string]$Command,
+        [Parameter(Mandatory = $true)][string[]]$Arguments
+    )
+
+    $Output = & $Command @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Command failed with exit code ${LASTEXITCODE}: $Command $($Arguments -join ' ')"
+    }
+
+    return ($Output -join [Environment]::NewLine)
+}
+
 function Get-ImageTagFromUri {
     param([Parameter(Mandatory = $true)][string]$ImageUri)
 
@@ -43,25 +69,29 @@ $env:AWS_PROFILE = $Profile
 $env:AWS_REGION = $Region
 
 Write-Host "Using AWS profile '$Profile' in region '$Region'."
-aws sts get-caller-identity --profile $Profile | Write-Host
-
-if (-not $SkipInit) {
-    terraform $TerraformChdir init
+try {
+    Invoke-CheckedCommand "aws" @("sts", "get-caller-identity", "--profile", $Profile)
+} catch {
+    throw "AWS credentials check failed. Run 'aws sso login --profile $Profile' and try again. Details: $($_.Exception.Message)"
 }
 
-$LambdaImageUri = (terraform $TerraformChdir output -raw lambda_image_uri).Trim()
+if (-not $SkipInit) {
+    Invoke-CheckedCommand "terraform" @($TerraformChdir, "init")
+}
+
+$LambdaImageUri = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", "lambda_image_uri")).Trim()
 $ImageTag = Get-ImageTagFromUri -ImageUri $LambdaImageUri
 $LambdaImageTagVar = "lambda_image_tag=$ImageTag"
 Write-Host "Preserving deployed Lambda image tag '$ImageTag' from Terraform state."
 
 if ($PlanOnly) {
-    terraform $TerraformChdir plan -var $LambdaImageTagVar
+    Invoke-CheckedCommand "terraform" @($TerraformChdir, "plan", "-var", $LambdaImageTagVar)
     return
 }
 
 $PlanPath = Join-Path ([System.IO.Path]::GetTempPath()) "mlb-teams-scheduler-$PID.tfplan"
 try {
-    terraform $TerraformChdir plan "-out=$PlanPath" -var $LambdaImageTagVar
+    Invoke-CheckedCommand "terraform" @($TerraformChdir, "plan", "-out=$PlanPath", "-var", $LambdaImageTagVar)
 
     if (-not $AutoApprove) {
         $Confirmation = Read-Host "Apply this scheduler plan? Type 'yes' to continue"
@@ -71,16 +101,23 @@ try {
         }
     }
 
-    terraform $TerraformChdir apply $PlanPath
+    Invoke-CheckedCommand "terraform" @($TerraformChdir, "apply", $PlanPath)
 
     if (-not $SkipVerify) {
-        $ScheduleName = (terraform $TerraformChdir output -raw mlb_teams_schedule_name).Trim()
+        $ScheduleName = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", "mlb_teams_schedule_name")).Trim()
         Write-Host "Verifying EventBridge Scheduler schedule '$ScheduleName'."
-        aws scheduler get-schedule `
-            --name $ScheduleName `
-            --group-name default `
-            --region $Region `
-            --profile $Profile | Write-Host
+        Invoke-CheckedCommand "aws" @(
+            "scheduler",
+            "get-schedule",
+            "--name",
+            $ScheduleName,
+            "--group-name",
+            "default",
+            "--region",
+            $Region,
+            "--profile",
+            $Profile
+        )
     }
 } finally {
     if (Test-Path $PlanPath) {
