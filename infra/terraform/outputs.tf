@@ -22,3 +22,8 @@ output "mlb_teams_schedule_name" {
   description = "EventBridge Scheduler schedule name for the MLB teams Lambda."
   value       = aws_scheduler_schedule.mlb_teams.name
 }
+
+output "snowflake_s3_read_role_arn" {
+  description = "IAM role ARN to use in the Snowflake MLB teams storage integration."
+  value       = aws_iam_role.snowflake_s3_read.arn
+}

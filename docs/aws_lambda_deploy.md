@@ -30,7 +30,7 @@ Initialize Terraform:
 terraform -chdir=infra/terraform init
 ```
 
-The MLB teams schedule defaults to daily at 6:00 AM America/Chicago. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "DISABLED"` in `terraform.tfvars` if you need different behavior before applying.
+The MLB teams schedule is intentionally created in a disabled state because team metadata is low-change reference data. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "ENABLED"` in `terraform.tfvars` if you need recurring refreshes before applying.
 
 ## Deploy With Script
 
@@ -102,9 +102,12 @@ Terraform creates:
 - ECR repository for the Lambda image.
 - IAM execution role with CloudWatch logs permissions.
 - S3 write policy scoped to `snowflake-kalshi-project/raw/mlb/teams/*`.
+- IAM read role scoped to the same S3 prefix for Snowflake external stage access.
 - CloudWatch log group.
 - Lambda function using the pushed container image.
-- EventBridge Scheduler schedule for the Lambda, enabled by default at 6:00 AM America/Chicago.
+- EventBridge Scheduler schedule for the Lambda, disabled by default but visible in AWS and Terraform.
+
+Snowpipe setup instructions live in [`docs/mlb_teams_snowpipe.md`](./mlb_teams_snowpipe.md).
 
 ## Invoke A Smoke Test
 
@@ -124,6 +127,8 @@ Get-Content response.json
 ```
 
 The response should include `row_count` and an `s3_uri` under `s3://snowflake-kalshi-project/raw/mlb/teams/`.
+
+For the intended one-time dimension load, run this smoke test after Snowpipe notifications are configured, then validate the file loaded into `PROD.RAW.RAW_MLB_TEAMS`.
 
 ## Updating The Function
 

@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: dim_mlb_teams
+    description: Current MLB team dimension sourced from the Snowpipe-loaded raw teams snapshots.
+    columns:
+      - name: team_id
+        description: Stable MLB Stats API team identifier.
+        tests:
+          - not_null
+          - unique
+      - name: full_team_name
+        description: Full franchise name returned by the MLB Stats API.
+      - name: abbreviation
+        description: Official team abbreviation.
+      - name: team_name
+        description: Short team nickname.
+      - name: league_id
+        description: MLB Stats API league identifier.
+      - name: division_id
+        description: MLB Stats API division identifier.
+      - name: is_active
+        description: Whether the team is active in the MLB Stats API response.

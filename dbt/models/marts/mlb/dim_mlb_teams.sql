@@ -1,0 +1,20 @@
+select
+    team_id,
+    full_team_name,
+    team_code,
+    abbreviation,
+    team_name,
+    location_name,
+    first_year_of_play,
+    sport_id,
+    sport_name,
+    league_id,
+    league_name,
+    division_id,
+    division_name,
+    venue_id,
+    venue_name,
+    is_active,
+    ingested_at as source_ingested_at,
+    snowpipe_loaded_at
+from {{ ref('stg_mlb_teams') }}
