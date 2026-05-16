@@ -18,10 +18,11 @@ class FakeEventsClient:
                 "status": status,
             }
         )
+        ticker = event_ticker or f"{series_ticker}-26MAY101920DETKC"
         return [
             {
-                "event_ticker": "KXMLBSPREAD-26MAY101920DETKC",
-                "series_ticker": "KXMLBSPREAD",
+                "event_ticker": ticker,
+                "series_ticker": series_ticker or "KXMLBSPREAD",
                 "category": "Sports",
                 "title": "Detroit vs. Kansas City",
                 "sub_title": "Spread",
@@ -111,20 +112,53 @@ class KalshiEventsLandingPipelineTests(unittest.TestCase):
             )
 
         self.assertEqual(events_client.calls[0]["status"], "open")
+        self.assertEqual(
+            [call["series_ticker"] for call in events_client.calls],
+            ["KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"],
+        )
+        self.assertEqual(summary["series_tickers"], ["KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"])
         self.assertEqual(summary["bucket"], "snowflake-shared")
         self.assertTrue(summary["key"].startswith("landing/kalshi/events/"))
 
-    def test_all_status_requires_event_or_series_scope(self):
+    def test_run_accepts_event_ticker_without_default_series_ticker_conflict(self):
+        events_client = FakeEventsClient()
+        s3_writer = FakeS3Writer()
+        env = {
+            "KALSHI_EVENTS_S3_BUCKET": "snowflake-shared",
+            "KALSHI_EVENTS_SERIES_TICKERS": "KXMLBSPREAD,KXMLBTOTAL,KXMLBGAME",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            summary = events_landing.run(
+                {"event_ticker": "KXEXACT-26"},
+                events_client=events_client,
+                s3_writer=s3_writer,
+                now=dt.datetime(2026, 5, 14, tzinfo=dt.timezone.utc),
+            )
+
+        self.assertEqual(events_client.calls[0]["event_ticker"], "KXEXACT-26")
+        self.assertIsNone(events_client.calls[0]["series_ticker"])
+        self.assertEqual(summary["event_ticker"], "KXEXACT-26")
+        self.assertEqual(summary["series_tickers"], [])
+
+    def test_all_status_uses_default_series_tickers(self):
+        events_client = FakeEventsClient()
+
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(ValueError, "event_ticker or series_ticker"):
-                events_landing.run(
-                    {"s3_bucket": "snowflake-landing", "status": "all"},
-                    events_client=FakeEventsClient(),
-                    s3_writer=FakeS3Writer(),
-                )
+            summary = events_landing.run(
+                {"s3_bucket": "snowflake-landing", "status": "all"},
+                events_client=events_client,
+                s3_writer=FakeS3Writer(),
+            )
+
+        self.assertIsNone(summary["status"])
+        self.assertEqual(
+            [call["series_ticker"] for call in events_client.calls],
+            ["KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"],
+        )
 
     def test_run_rejects_multiple_event_scopes(self):
-        with self.assertRaisesRegex(ValueError, "either event_ticker or series_ticker"):
+        with self.assertRaisesRegex(ValueError, "either event_ticker or series_tickers"):
             events_landing.run(
                 {
                     "s3_bucket": "snowflake-landing",

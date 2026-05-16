@@ -49,12 +49,10 @@ The Kalshi Events and Series deploy path is:
 ```powershell
 .\scripts\deploy_kalshi_lambdas.ps1 `
   -Profile ggarrido `
-  -Region us-east-2 `
-  -EventsSeriesTicker KXMLBSPREAD `
-  -SeriesTicker KXMLBSPREAD
+  -Region us-east-2
 ```
 
-The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and push the Lambda image, apply the full Terraform stack, and invoke smoke tests. Run them from PowerShell. The Kalshi script requires explicit smoke-test scope for Events and Series; use `-SkipInvoke`, `-SkipEventsInvoke`, or `-SkipSeriesInvoke` when deploying without smoke invokes.
+The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and push the Lambda image, apply the full Terraform stack, and invoke smoke tests. Run them from PowerShell. The Kalshi script defaults Events to the MLB series tickers `KXMLBSPREAD`, `KXMLBTOTAL`, and `KXMLBGAME`, and defaults Series to `tags = ["BaseBall"]`; override with `-EventsEventTicker`, `-EventsSeriesTicker`, `-EventsSeriesTickers`, `-SeriesTicker`, or `-SeriesTags` when needed.
 
 ## Deploy Scheduler Only
 
@@ -147,14 +145,14 @@ For the intended one-time dimension load, run this smoke test after Snowpipe not
 
 ## Invoke Kalshi Events And Series
 
-The Kalshi deploy script smoke invokes both Lambdas when passed scoped ticker values. To invoke manually after deployment, Kalshi Events defaults to `status = "open"` and accepts either an event ticker or a series ticker:
+The Kalshi deploy script smoke invokes both Lambdas with the default MLB scope. To invoke manually after deployment, Kalshi Events defaults to `status = "open"` and the series tickers `KXMLBSPREAD`, `KXMLBTOTAL`, and `KXMLBGAME`; it also accepts an exact event ticker or custom series ticker list:
 
 ```powershell
 $EventsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_events_lambda_function_name
 
 aws lambda invoke `
   --function-name $EventsFunctionName `
-  --payload '{"series_ticker":"KXMLBSPREAD","status":"open"}' `
+  --payload '{"series_tickers":["KXMLBSPREAD","KXMLBTOTAL","KXMLBGAME"],"status":"open"}' `
   --cli-binary-format raw-in-base64-out `
   --region $Region `
   kalshi-events-response.json
@@ -162,14 +160,14 @@ aws lambda invoke `
 Get-Content kalshi-events-response.json
 ```
 
-Kalshi Series requires an exact series ticker in either the invocation payload or `kalshi_series_ticker`:
+Kalshi Series defaults to `tags = ["BaseBall"]`, or accepts an exact series ticker in either the invocation payload or `kalshi_series_ticker`:
 
 ```powershell
 $SeriesFunctionName = terraform -chdir=infra/terraform output -raw kalshi_series_lambda_function_name
 
 aws lambda invoke `
   --function-name $SeriesFunctionName `
-  --payload '{"series_ticker":"KXMLBSPREAD"}' `
+  --payload '{"tags":["BaseBall"]}' `
   --cli-binary-format raw-in-base64-out `
   --region $Region `
   kalshi-series-response.json

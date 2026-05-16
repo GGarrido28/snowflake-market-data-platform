@@ -18,12 +18,13 @@ locals {
   )
   kalshi_events_scope_environment = merge(
     var.kalshi_events_event_ticker != null && var.kalshi_events_event_ticker != "" ? { KALSHI_EVENTS_EVENT_TICKER = var.kalshi_events_event_ticker } : {},
-    var.kalshi_events_series_ticker != null && var.kalshi_events_series_ticker != "" ? { KALSHI_EVENTS_SERIES_TICKER = var.kalshi_events_series_ticker } : {}
+    length(var.kalshi_events_series_tickers) > 0 ? { KALSHI_EVENTS_SERIES_TICKERS = join(",", var.kalshi_events_series_tickers) } : {}
   )
-  kalshi_series_scope_environment = (
+  kalshi_series_scope_environment = merge(
     var.kalshi_series_ticker != null && var.kalshi_series_ticker != ""
     ? { KALSHI_SERIES_TICKER = var.kalshi_series_ticker }
-    : {}
+    : {},
+    length(var.kalshi_series_tags) > 0 ? { KALSHI_SERIES_TAGS = join(",", var.kalshi_series_tags) } : {}
   )
   kalshi_api_secret_resource_arns = concat(
     var.kalshi_api_secret_arn != null && var.kalshi_api_secret_arn != "" ? [var.kalshi_api_secret_arn] : [],

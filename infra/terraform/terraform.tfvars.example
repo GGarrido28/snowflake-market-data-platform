@@ -33,5 +33,10 @@ kalshi_api_secret_name = null
 # be supplied in the manual invocation payload.
 kalshi_events_status        = "open"
 kalshi_events_event_ticker  = null
-kalshi_events_series_ticker = null
+kalshi_events_series_tickers = [
+  "KXMLBSPREAD",
+  "KXMLBTOTAL",
+  "KXMLBGAME",
+]
 kalshi_series_ticker        = null
+kalshi_series_tags          = ["BaseBall"]

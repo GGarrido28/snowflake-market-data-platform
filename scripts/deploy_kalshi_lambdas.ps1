@@ -6,7 +6,9 @@ param(
     [string]$EventsStatus = "open",
     [string]$EventsEventTicker,
     [string]$EventsSeriesTicker,
+    [string[]]$EventsSeriesTickers = @("KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"),
     [string]$SeriesTicker,
+    [string[]]$SeriesTags = @("BaseBall"),
     [switch]$SkipInit,
     [switch]$SkipBuild,
     [switch]$SkipInvoke,
@@ -107,14 +109,6 @@ if ($PlanOnly -and $AutoApprove) {
 
 if ($EventsEventTicker -and $EventsSeriesTicker) {
     throw "Use either -EventsEventTicker or -EventsSeriesTicker, not both."
-}
-
-if (-not $SkipInvoke -and -not $SkipEventsInvoke -and -not ($EventsEventTicker -or $EventsSeriesTicker)) {
-    throw "Pass -EventsEventTicker or -EventsSeriesTicker for the Kalshi Events smoke invoke, or use -SkipEventsInvoke."
-}
-
-if (-not $SkipInvoke -and -not $SkipSeriesInvoke -and -not $SeriesTicker) {
-    throw "Pass -SeriesTicker for the Kalshi Series smoke invoke, or use -SkipSeriesInvoke."
 }
 
 Require-Command "aws"
@@ -221,6 +215,9 @@ if (-not $SkipEventsInvoke) {
     if ($EventsSeriesTicker) {
         $EventsPayload["series_ticker"] = $EventsSeriesTicker
     }
+    if (-not $EventsEventTicker -and -not $EventsSeriesTicker) {
+        $EventsPayload["series_tickers"] = $EventsSeriesTickers
+    }
 
     Invoke-LambdaSmokeTest `
         -FunctionName $EventsFunctionName `
@@ -229,8 +226,11 @@ if (-not $SkipEventsInvoke) {
 }
 
 if (-not $SkipSeriesInvoke) {
-    $SeriesPayload = @{
-        series_ticker = $SeriesTicker
+    $SeriesPayload = @{}
+    if ($SeriesTicker) {
+        $SeriesPayload["series_ticker"] = $SeriesTicker
+    } else {
+        $SeriesPayload["tags"] = $SeriesTags
     }
 
     Invoke-LambdaSmokeTest `

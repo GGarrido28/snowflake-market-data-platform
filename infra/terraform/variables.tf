@@ -119,16 +119,22 @@ variable "kalshi_events_event_ticker" {
   default     = null
 }
 
-variable "kalshi_events_series_ticker" {
-  description = "Optional Kalshi series ticker scope for the events Lambda."
+variable "kalshi_events_series_tickers" {
+  description = "Kalshi series tickers the events Lambda fetches when no exact event ticker is supplied."
+  type        = list(string)
+  default     = ["KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"]
+}
+
+variable "kalshi_series_ticker" {
+  description = "Optional exact Kalshi series ticker scope for the series Lambda. When unset, the Lambda fetches all series pages and filters by kalshi_series_tags."
   type        = string
   default     = null
 }
 
-variable "kalshi_series_ticker" {
-  description = "Optional exact Kalshi series ticker scope for the series Lambda. The Lambda also accepts this value in its invocation payload."
-  type        = string
-  default     = null
+variable "kalshi_series_tags" {
+  description = "Kalshi series tags to match when kalshi_series_ticker is unset."
+  type        = list(string)
+  default     = ["BaseBall"]
 }
 
 variable "lambda_timeout_seconds" {

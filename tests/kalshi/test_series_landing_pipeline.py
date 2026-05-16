@@ -9,6 +9,7 @@ from market_data_platform.pipelines.kalshi import series_landing
 class FakeSeriesClient:
     def __init__(self):
         self.tickers: list[str] = []
+        self.get_all_series_calls = 0
 
     def get_series(self, series_ticker: str):
         self.tickers.append(series_ticker)
@@ -22,6 +23,29 @@ class FakeSeriesClient:
             "fee_type": "contract",
             "last_updated_ts": "2026-05-14T13:00:00Z",
         }
+
+    def get_all_series(self, *, all_pages=False):
+        self.get_all_series_calls += 1
+        return [
+            {
+                "ticker": "KXMLBSPREAD",
+                "category": "Sports",
+                "title": "MLB spreads",
+                "tags": ["BaseBall"],
+            },
+            {
+                "ticker": "KXMLBTOTAL",
+                "category": "Sports",
+                "title": "MLB totals",
+                "tags": ["BaseBall"],
+            },
+            {
+                "ticker": "KXNBA",
+                "category": "Sports",
+                "title": "NBA",
+                "tags": ["BasketBall"],
+            },
+        ]
 
 
 class FakeS3Writer:
@@ -93,14 +117,26 @@ class KalshiSeriesLandingPipelineTests(unittest.TestCase):
         self.assertEqual(summary["bucket"], "snowflake-shared")
         self.assertTrue(summary["key"].startswith("landing/kalshi/series/"))
 
-    def test_run_requires_series_scope(self):
+    def test_run_defaults_to_baseball_tag_filter(self):
+        series_client = FakeSeriesClient()
+        s3_writer = FakeS3Writer()
+
         with patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(ValueError, "series_ticker"):
-                series_landing.run(
-                    {"s3_bucket": "snowflake-landing"},
-                    series_client=FakeSeriesClient(),
-                    s3_writer=FakeS3Writer(),
-                )
+            summary = series_landing.run(
+                {"s3_bucket": "snowflake-landing"},
+                series_client=series_client,
+                s3_writer=s3_writer,
+                now=dt.datetime(2026, 5, 14, tzinfo=dt.timezone.utc),
+            )
+
+        self.assertEqual(series_client.get_all_series_calls, 1)
+        self.assertEqual(summary["series_ticker"], None)
+        self.assertEqual(summary["tags"], ["BaseBall"])
+        self.assertEqual(summary["row_count"], 2)
+        self.assertEqual(
+            [row["ticker"] for row in s3_writer.calls[0]["rows"]],
+            ["KXMLBSPREAD", "KXMLBTOTAL"],
+        )
 
 
 if __name__ == "__main__":
