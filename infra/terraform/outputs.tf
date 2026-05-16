@@ -27,3 +27,12 @@ output "snowflake_s3_read_role_arn" {
   description = "IAM role ARN to use in the Snowflake MLB teams storage integration."
   value       = aws_iam_role.snowflake_s3_read.arn
 }
+
+output "kalshi_api_secret_read_policy_arn" {
+  description = "Optional IAM policy ARN that grants read access to the configured Kalshi API secret."
+  value = (
+    var.kalshi_api_secret_arn == null || var.kalshi_api_secret_arn == ""
+    ? null
+    : aws_iam_policy.kalshi_api_secret_read[0].arn
+  )
+}

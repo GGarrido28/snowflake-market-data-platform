@@ -75,6 +75,12 @@ variable "snowflake_storage_aws_external_id" {
   default     = null
 }
 
+variable "kalshi_api_secret_arn" {
+  description = "Optional AWS Secrets Manager secret ARN containing the Kalshi API key id and private key PEM. When set, Terraform creates a least-privilege read policy for future Kalshi ingestion Lambdas."
+  type        = string
+  default     = null
+}
+
 variable "lambda_timeout_seconds" {
   description = "Timeout for the MLB teams Lambda function."
   type        = number
