@@ -38,13 +38,23 @@ Kalshi Events and Series Lambdas are deployed without EventBridge schedules in t
 
 ## Deploy With Script
 
-The easiest path is the deploy script:
+The MLB Teams deploy path is:
 
 ```powershell
 .\scripts\deploy_mlb_teams_lambda.ps1 -Profile ggarrido -Region us-east-2
 ```
 
-The script initializes Terraform, bootstraps ECR, logs Docker into ECR, builds and pushes the Lambda image, applies the full Terraform stack, and invokes a smoke test. Run it from PowerShell.
+The Kalshi Events and Series deploy path is:
+
+```powershell
+.\scripts\deploy_kalshi_lambdas.ps1 `
+  -Profile ggarrido `
+  -Region us-east-2 `
+  -EventsSeriesTicker KXMLBSPREAD `
+  -SeriesTicker KXMLBSPREAD
+```
+
+The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and push the Lambda image, apply the full Terraform stack, and invoke smoke tests. Run them from PowerShell. The Kalshi script requires explicit smoke-test scope for Events and Series; use `-SkipInvoke`, `-SkipEventsInvoke`, or `-SkipSeriesInvoke` when deploying without smoke invokes.
 
 ## Deploy Scheduler Only
 
@@ -137,7 +147,7 @@ For the intended one-time dimension load, run this smoke test after Snowpipe not
 
 ## Invoke Kalshi Events And Series
 
-Kalshi Events defaults to `status = "open"` and accepts either an event ticker or a series ticker to keep manual invocations scoped:
+The Kalshi deploy script smoke invokes both Lambdas when passed scoped ticker values. To invoke manually after deployment, Kalshi Events defaults to `status = "open"` and accepts either an event ticker or a series ticker:
 
 ```powershell
 $EventsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_events_lambda_function_name
