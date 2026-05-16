@@ -43,7 +43,7 @@ resource "aws_iam_role" "snowflake_s3_read" {
 
 data "aws_iam_policy_document" "snowflake_s3_read" {
   statement {
-    sid    = "ReadMlbTeamsLandingObjects"
+    sid    = "ReadLandingObjects"
     effect = "Allow"
 
     actions = [
@@ -52,12 +52,12 @@ data "aws_iam_policy_document" "snowflake_s3_read" {
     ]
 
     resources = [
-      "${data.aws_s3_bucket.landing.arn}/${local.s3_prefix}/*",
+      for prefix in local.snowflake_s3_read_prefixes : "${data.aws_s3_bucket.landing.arn}/${prefix}/*"
     ]
   }
 
   statement {
-    sid    = "ListMlbTeamsLandingPrefix"
+    sid    = "ListLandingPrefixes"
     effect = "Allow"
 
     actions = [
@@ -70,17 +70,19 @@ data "aws_iam_policy_document" "snowflake_s3_read" {
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values = [
-        local.s3_prefix,
-        "${local.s3_prefix}/*",
-      ]
+      values = flatten([
+        for prefix in local.snowflake_s3_read_prefixes : [
+          prefix,
+          "${prefix}/*",
+        ]
+      ])
     }
   }
 }
 
 resource "aws_iam_policy" "snowflake_s3_read" {
   name        = "${local.name_prefix}-snowflake-s3-read"
-  description = "Allows Snowflake to read the MLB teams S3 landing prefix."
+  description = "Allows Snowflake to read managed S3 landing prefixes."
   policy      = data.aws_iam_policy_document.snowflake_s3_read.json
 
   tags = merge(var.tags, {
