@@ -94,7 +94,7 @@ function Invoke-LambdaSmokeTest {
     try {
         [System.IO.File]::WriteAllText($PayloadFile, $PayloadJson)
         $PayloadUri = "file://$PayloadFile"
-        Invoke-CheckedCommand "aws" @(
+        $InvokeOutput = Invoke-CheckedCommandOutput "aws" @(
             "lambda",
             "invoke",
             "--function-name",
@@ -109,6 +109,7 @@ function Invoke-LambdaSmokeTest {
             $Profile,
             $ResponsePath
         )
+        Write-Host $InvokeOutput
     } finally {
         if (Test-Path $PayloadFile) {
             Remove-Item -LiteralPath $PayloadFile -Force
@@ -116,7 +117,13 @@ function Invoke-LambdaSmokeTest {
     }
 
     Write-Host "Lambda response from '$ResponsePath':"
-    Get-Content $ResponsePath | Write-Host
+    $ResponseBody = Get-Content $ResponsePath -Raw
+    $ResponseBody | Write-Host
+
+    $InvokeResult = $InvokeOutput | ConvertFrom-Json
+    if ($InvokeResult.FunctionError) {
+        throw "Lambda '$FunctionName' returned FunctionError '$($InvokeResult.FunctionError)'. Response body: $ResponseBody"
+    }
 }
 
 if ($PlanOnly -and $AutoApprove) {
