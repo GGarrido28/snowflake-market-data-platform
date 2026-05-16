@@ -189,6 +189,8 @@ Get-Content kalshi-series-response.json
 
 The responses include `row_count` and `s3_uri` values under the `raw/kalshi/events/` or `raw/kalshi/series/` prefixes.
 
+Snowflake RAW landing setup for these prefixes lives in [`docs/kalshi_events_series_snowpipe.md`](./kalshi_events_series_snowpipe.md).
+
 ## Scheduled Kalshi Payloads
 
 The Kalshi EventBridge schedules invoke their matching Lambda only. The scheduler IAM policy for each schedule is scoped to the corresponding Lambda ARN, and the target payload is generated from Terraform variables.
