@@ -93,7 +93,7 @@ function Invoke-LambdaSmokeTest {
     $PayloadFile = [System.IO.Path]::GetTempFileName()
     try {
         [System.IO.File]::WriteAllText($PayloadFile, $PayloadJson)
-        $PayloadUri = "file:///$($PayloadFile.Replace('\', '/'))"
+        $PayloadUri = "file://$PayloadFile"
         Invoke-CheckedCommand "aws" @(
             "lambda",
             "invoke",
