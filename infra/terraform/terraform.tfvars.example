@@ -5,9 +5,11 @@ environment  = "dev"
 
 s3_bucket_name = "snowflake-kalshi-project"
 s3_prefix      = "raw/mlb/teams"
+kalshi_events_s3_prefix = "raw/kalshi/events"
+kalshi_series_s3_prefix = "raw/kalshi/series"
 
-lambda_image_tag       = "latest"
-mlb_teams_sport_id     = "1"
+lambda_image_tag               = "latest"
+mlb_teams_sport_id             = "1"
 mlb_teams_schedule_expression = "cron(0 6 * * ? *)"
 mlb_teams_schedule_timezone   = "America/Chicago"
 # Intentionally disabled: MLB teams is low-change reference data. Run the
@@ -23,6 +25,13 @@ snowflake_storage_aws_iam_user_arn = null
 snowflake_storage_aws_external_id  = null
 
 # Optional: ARN for the AWS Secrets Manager secret that stores Kalshi API
-# credentials. When set, Terraform creates a read policy that the future Kalshi
-# ingestion Lambda role can attach.
+# credentials. Use either ARN or name. Do not put secret values in Terraform.
 kalshi_api_secret_arn = null
+kalshi_api_secret_name = null
+
+# Optional conservative invocation scopes for the Kalshi Lambdas. These can also
+# be supplied in the manual invocation payload.
+kalshi_events_status        = "open"
+kalshi_events_event_ticker  = null
+kalshi_events_series_ticker = null
+kalshi_series_ticker        = null

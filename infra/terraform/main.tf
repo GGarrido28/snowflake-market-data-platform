@@ -1,8 +1,29 @@
 locals {
-  name_prefix    = "${var.project_name}-${var.environment}"
-  mlb_teams_name = "${local.name_prefix}-mlb-teams"
-  s3_prefix      = trim(var.s3_prefix, "/")
-  image_uri      = "${aws_ecr_repository.mlb_teams.repository_url}:${var.lambda_image_tag}"
+  name_prefix             = "${var.project_name}-${var.environment}"
+  mlb_teams_name          = "${local.name_prefix}-mlb-teams"
+  kalshi_events_name      = "${local.name_prefix}-kalshi-events"
+  kalshi_series_name      = "${local.name_prefix}-kalshi-series"
+  s3_prefix               = trim(var.s3_prefix, "/")
+  kalshi_events_s3_prefix = trim(var.kalshi_events_s3_prefix, "/")
+  kalshi_series_s3_prefix = trim(var.kalshi_series_s3_prefix, "/")
+  image_uri               = "${aws_ecr_repository.mlb_teams.repository_url}:${var.lambda_image_tag}"
+  kalshi_secret_environment = merge(
+    var.kalshi_api_secret_arn != null && var.kalshi_api_secret_arn != "" ? { KALSHI_SECRET_ARN = var.kalshi_api_secret_arn } : {},
+    var.kalshi_api_secret_name != null && var.kalshi_api_secret_name != "" ? { KALSHI_SECRET_NAME = var.kalshi_api_secret_name } : {}
+  )
+  kalshi_events_scope_environment = merge(
+    var.kalshi_events_event_ticker != null && var.kalshi_events_event_ticker != "" ? { KALSHI_EVENTS_EVENT_TICKER = var.kalshi_events_event_ticker } : {},
+    var.kalshi_events_series_ticker != null && var.kalshi_events_series_ticker != "" ? { KALSHI_EVENTS_SERIES_TICKER = var.kalshi_events_series_ticker } : {}
+  )
+  kalshi_series_scope_environment = (
+    var.kalshi_series_ticker != null && var.kalshi_series_ticker != ""
+    ? { KALSHI_SERIES_TICKER = var.kalshi_series_ticker }
+    : {}
+  )
+  kalshi_api_secret_resource_arns = concat(
+    var.kalshi_api_secret_arn != null && var.kalshi_api_secret_arn != "" ? [var.kalshi_api_secret_arn] : [],
+    var.kalshi_api_secret_name != null && var.kalshi_api_secret_name != "" ? ["arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.kalshi_api_secret_name}*"] : []
+  )
 }
 
 data "aws_s3_bucket" "landing" {
