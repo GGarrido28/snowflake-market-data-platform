@@ -87,3 +87,30 @@ resource "aws_iam_role_policy_attachment" "mlb_teams_scheduler_invoke" {
   role       = aws_iam_role.mlb_teams_scheduler.name
   policy_arn = aws_iam_policy.mlb_teams_scheduler_invoke.arn
 }
+
+data "aws_iam_policy_document" "kalshi_api_secret_read" {
+  count = var.kalshi_api_secret_arn == null || var.kalshi_api_secret_arn == "" ? 0 : 1
+
+  statement {
+    sid    = "ReadKalshiApiSecret"
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = [var.kalshi_api_secret_arn]
+  }
+}
+
+resource "aws_iam_policy" "kalshi_api_secret_read" {
+  count = var.kalshi_api_secret_arn == null || var.kalshi_api_secret_arn == "" ? 0 : 1
+
+  name        = "${local.name_prefix}-kalshi-api-secret-read"
+  description = "Allows a Kalshi ingestion Lambda to read its API credentials from AWS Secrets Manager."
+  policy      = data.aws_iam_policy_document.kalshi_api_secret_read[0].json
+
+  tags = merge(var.tags, {
+    Purpose = "kalshi-api-secret-read"
+  })
+}
