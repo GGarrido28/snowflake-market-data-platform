@@ -90,21 +90,30 @@ function Invoke-LambdaSmokeTest {
     )
 
     Write-Host "Invoking '$FunctionName' with payload: $PayloadJson"
-    Invoke-CheckedCommand "aws" @(
-        "lambda",
-        "invoke",
-        "--function-name",
-        $FunctionName,
-        "--payload",
-        $PayloadJson,
-        "--cli-binary-format",
-        "raw-in-base64-out",
-        "--region",
-        $Region,
-        "--profile",
-        $Profile,
-        $ResponsePath
-    )
+    $PayloadFile = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($PayloadFile, $PayloadJson)
+        $PayloadUri = "file:///$($PayloadFile.Replace('\', '/'))"
+        Invoke-CheckedCommand "aws" @(
+            "lambda",
+            "invoke",
+            "--function-name",
+            $FunctionName,
+            "--payload",
+            $PayloadUri,
+            "--cli-binary-format",
+            "raw-in-base64-out",
+            "--region",
+            $Region,
+            "--profile",
+            $Profile,
+            $ResponsePath
+        )
+    } finally {
+        if (Test-Path $PayloadFile) {
+            Remove-Item -LiteralPath $PayloadFile -Force
+        }
+    }
 
     Write-Host "Lambda response from '$ResponsePath':"
     Get-Content $ResponsePath | Write-Host
