@@ -75,6 +75,52 @@ variable "mlb_teams_schedule_state" {
   }
 }
 
+variable "kalshi_events_schedule_expression" {
+  description = "Hourly EventBridge Scheduler expression for the Kalshi events Lambda."
+  type        = string
+  default     = "cron(0 * * * ? *)"
+}
+
+variable "kalshi_events_schedule_timezone" {
+  description = "Time zone used to evaluate the Kalshi events schedule expression."
+  type        = string
+  default     = "America/Chicago"
+}
+
+variable "kalshi_events_schedule_state" {
+  description = "Whether the Kalshi events EventBridge Scheduler schedule is enabled."
+  type        = string
+  default     = "ENABLED"
+
+  validation {
+    condition     = contains(["ENABLED", "DISABLED"], var.kalshi_events_schedule_state)
+    error_message = "kalshi_events_schedule_state must be ENABLED or DISABLED."
+  }
+}
+
+variable "kalshi_series_schedule_expression" {
+  description = "Hourly EventBridge Scheduler expression for the Kalshi series Lambda."
+  type        = string
+  default     = "cron(0 * * * ? *)"
+}
+
+variable "kalshi_series_schedule_timezone" {
+  description = "Time zone used to evaluate the Kalshi series schedule expression."
+  type        = string
+  default     = "America/Chicago"
+}
+
+variable "kalshi_series_schedule_state" {
+  description = "Whether the Kalshi series EventBridge Scheduler schedule is enabled."
+  type        = string
+  default     = "ENABLED"
+
+  validation {
+    condition     = contains(["ENABLED", "DISABLED"], var.kalshi_series_schedule_state)
+    error_message = "kalshi_series_schedule_state must be ENABLED or DISABLED."
+  }
+}
+
 variable "snowflake_storage_aws_iam_user_arn" {
   description = "Snowflake STORAGE_AWS_IAM_USER_ARN from DESC INTEGRATION. Leave null until the storage integration exists."
   type        = string

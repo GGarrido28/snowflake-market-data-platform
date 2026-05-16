@@ -162,6 +162,60 @@ resource "aws_iam_role_policy_attachment" "mlb_teams_scheduler_invoke" {
   policy_arn = aws_iam_policy.mlb_teams_scheduler_invoke.arn
 }
 
+resource "aws_iam_role" "kalshi_events_scheduler" {
+  name               = "${local.kalshi_events_name}-scheduler-role"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
+}
+
+data "aws_iam_policy_document" "kalshi_events_scheduler_invoke" {
+  statement {
+    sid    = "InvokeKalshiEventsLambda"
+    effect = "Allow"
+
+    actions = ["lambda:InvokeFunction"]
+
+    resources = [aws_lambda_function.kalshi_events.arn]
+  }
+}
+
+resource "aws_iam_policy" "kalshi_events_scheduler_invoke" {
+  name        = "${local.kalshi_events_name}-scheduler-invoke"
+  description = "Allows EventBridge Scheduler to invoke only the Kalshi events Lambda."
+  policy      = data.aws_iam_policy_document.kalshi_events_scheduler_invoke.json
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_events_scheduler_invoke" {
+  role       = aws_iam_role.kalshi_events_scheduler.name
+  policy_arn = aws_iam_policy.kalshi_events_scheduler_invoke.arn
+}
+
+resource "aws_iam_role" "kalshi_series_scheduler" {
+  name               = "${local.kalshi_series_name}-scheduler-role"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
+}
+
+data "aws_iam_policy_document" "kalshi_series_scheduler_invoke" {
+  statement {
+    sid    = "InvokeKalshiSeriesLambda"
+    effect = "Allow"
+
+    actions = ["lambda:InvokeFunction"]
+
+    resources = [aws_lambda_function.kalshi_series.arn]
+  }
+}
+
+resource "aws_iam_policy" "kalshi_series_scheduler_invoke" {
+  name        = "${local.kalshi_series_name}-scheduler-invoke"
+  description = "Allows EventBridge Scheduler to invoke only the Kalshi series Lambda."
+  policy      = data.aws_iam_policy_document.kalshi_series_scheduler_invoke.json
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_series_scheduler_invoke" {
+  role       = aws_iam_role.kalshi_series_scheduler.name
+  policy_arn = aws_iam_policy.kalshi_series_scheduler_invoke.arn
+}
+
 data "aws_iam_policy_document" "kalshi_api_secret_read" {
   count = length(local.kalshi_api_secret_resource_arns) > 0 ? 1 : 0
 

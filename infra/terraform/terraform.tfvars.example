@@ -15,6 +15,12 @@ mlb_teams_schedule_timezone   = "America/Chicago"
 # Intentionally disabled: MLB teams is low-change reference data. Run the
 # Lambda manually when this dimension needs a refresh.
 mlb_teams_schedule_state      = "DISABLED"
+kalshi_events_schedule_expression = "cron(0 * * * ? *)"
+kalshi_events_schedule_timezone   = "America/Chicago"
+kalshi_events_schedule_state      = "ENABLED"
+kalshi_series_schedule_expression = "cron(0 * * * ? *)"
+kalshi_series_schedule_timezone   = "America/Chicago"
+kalshi_series_schedule_state      = "ENABLED"
 lambda_timeout_seconds = 60
 lambda_memory_mb       = 512
 log_retention_days     = 14

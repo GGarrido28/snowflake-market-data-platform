@@ -70,7 +70,7 @@ $env:AWS_REGION = $Region
 
 Write-Host "Using AWS profile '$Profile' in region '$Region'."
 try {
-    Invoke-CheckedCommand "aws" @("sts", "get-caller-identity", "--profile", $Profile)
+    Invoke-CheckedCommand "aws" @("sts", "get-caller-identity", "--profile", $Profile, "--no-cli-pager")
 } catch {
     throw "AWS credentials check failed. Run 'aws sso login --profile $Profile' and try again. Details: $($_.Exception.Message)"
 }
@@ -89,12 +89,12 @@ if ($PlanOnly) {
     return
 }
 
-$PlanPath = Join-Path ([System.IO.Path]::GetTempPath()) "mlb-teams-scheduler-$PID.tfplan"
+$PlanPath = Join-Path ([System.IO.Path]::GetTempPath()) "managed-schedulers-$PID.tfplan"
 try {
     Invoke-CheckedCommand "terraform" @($TerraformChdir, "plan", "-out=$PlanPath", "-var", $LambdaImageTagVar)
 
     if (-not $AutoApprove) {
-        $Confirmation = Read-Host "Apply this scheduler plan? Type 'yes' to continue"
+        $Confirmation = Read-Host "Apply this ingestion scheduler plan? Type 'yes' to continue"
         if ($Confirmation -ne "yes") {
             Write-Host "Apply cancelled."
             return
@@ -104,20 +104,29 @@ try {
     Invoke-CheckedCommand "terraform" @($TerraformChdir, "apply", $PlanPath)
 
     if (-not $SkipVerify) {
-        $ScheduleName = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", "mlb_teams_schedule_name")).Trim()
-        Write-Host "Verifying EventBridge Scheduler schedule '$ScheduleName'."
-        Invoke-CheckedCommand "aws" @(
-            "scheduler",
-            "get-schedule",
-            "--name",
-            $ScheduleName,
-            "--group-name",
-            "default",
-            "--region",
-            $Region,
-            "--profile",
-            $Profile
+        $ScheduleOutputNames = @(
+            "mlb_teams_schedule_name",
+            "kalshi_events_schedule_name",
+            "kalshi_series_schedule_name"
         )
+
+        foreach ($OutputName in $ScheduleOutputNames) {
+            $ScheduleName = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", $OutputName)).Trim()
+            Write-Host "Verifying EventBridge Scheduler schedule '$ScheduleName'."
+            Invoke-CheckedCommand "aws" @(
+                "scheduler",
+                "get-schedule",
+                "--name",
+                $ScheduleName,
+                "--group-name",
+                "default",
+                "--region",
+                $Region,
+                "--profile",
+                $Profile,
+                "--no-cli-pager"
+            )
+        }
     }
 } finally {
     if (Test-Path $PlanPath) {
