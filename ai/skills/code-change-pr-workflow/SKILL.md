@@ -80,6 +80,7 @@ If subagents are available and permitted, spawn a second agent whose job is PR m
 - inspect available repository labels
 - apply the correct labels to the PR
 - tighten the PR summary or body if needed
+- link to relevant documentation or issue tracking if applicable
 
 Keep this agent out of code changes unless the user explicitly asks for documentation edits in the repo itself.
 
