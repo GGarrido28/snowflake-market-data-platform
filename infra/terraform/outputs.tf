@@ -44,7 +44,7 @@ output "mlb_teams_schedule_name" {
 }
 
 output "snowflake_s3_read_role_arn" {
-  description = "IAM role ARN to use in the Snowflake MLB teams storage integration."
+  description = "IAM role ARN to use in Snowflake storage integrations for managed landing prefixes."
   value       = aws_iam_role.snowflake_s3_read.arn
 }
 

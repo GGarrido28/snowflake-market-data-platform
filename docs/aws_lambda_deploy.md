@@ -107,7 +107,7 @@ Terraform creates:
 - IAM execution roles with CloudWatch logs permissions.
 - S3 write policies scoped to `snowflake-kalshi-project/raw/mlb/teams/*`, `snowflake-kalshi-project/raw/kalshi/events/*`, and `snowflake-kalshi-project/raw/kalshi/series/*`.
 - Optional Kalshi Secrets Manager read policy attached only to the Kalshi Lambda roles when `kalshi_api_secret_arn` or `kalshi_api_secret_name` is configured.
-- IAM read role scoped to the same S3 prefix for Snowflake external stage access.
+- IAM read role scoped to the managed MLB and Kalshi S3 prefixes for Snowflake external stage access.
 - CloudWatch log groups.
 - Lambda functions using the pushed container image.
 - EventBridge Scheduler schedule for the Lambda, disabled by default but visible in AWS and Terraform.

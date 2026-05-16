@@ -91,10 +91,18 @@ variable "kalshi_api_secret_arn" {
   description = "Optional AWS Secrets Manager secret ARN containing the Kalshi API key id and private key PEM. When set, Terraform passes KALSHI_SECRET_ARN to the Kalshi Lambdas and grants read access to that ARN."
   type        = string
   default     = null
+
+  validation {
+    condition = !(
+      var.kalshi_api_secret_arn != null && var.kalshi_api_secret_arn != ""
+      && var.kalshi_api_secret_name != null && var.kalshi_api_secret_name != ""
+    )
+    error_message = "Set only one of kalshi_api_secret_arn or kalshi_api_secret_name."
+  }
 }
 
 variable "kalshi_api_secret_name" {
-  description = "Optional AWS Secrets Manager secret name containing the Kalshi API key id and private key PEM. When set, Terraform passes KALSHI_SECRET_NAME to the Kalshi Lambdas and grants read access to matching secrets in the current account and region."
+  description = "Optional AWS Secrets Manager secret name containing the Kalshi API key id and private key PEM. When set, Terraform passes KALSHI_SECRET_NAME to the Kalshi Lambdas and grants read access to the resolved secret ARN."
   type        = string
   default     = null
 }
