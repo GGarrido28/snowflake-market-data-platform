@@ -67,16 +67,16 @@ The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and 
 
 ## Deploy Scheduler Only
 
-After the Lambda image has already been deployed, use the scheduler script to plan and apply Terraform without rebuilding or pushing a container image. The script name is historical, but it now preserves the deployed image tag and manages all Terraform scheduler changes, including the Kalshi Events and Series schedules:
+After the Lambda image has already been deployed, use the ingestion scheduler script to plan and apply Terraform without rebuilding or pushing a container image. It preserves the deployed image tag and manages Terraform scheduler changes, including the Kalshi Events and Series schedules:
 
 ```powershell
-.\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2
+.\scripts\deploy_ingestion_schedulers.ps1 -Profile ggarrido -Region us-east-2
 ```
 
 The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. After apply, it verifies the MLB Teams, Kalshi Events, and Kalshi Series schedules. To preview without applying, run:
 
 ```powershell
-.\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2 -PlanOnly
+.\scripts\deploy_ingestion_schedulers.ps1 -Profile ggarrido -Region us-east-2 -PlanOnly
 ```
 
 Use `-AutoApprove` only when you want the script to apply the saved Terraform plan without an interactive confirmation.

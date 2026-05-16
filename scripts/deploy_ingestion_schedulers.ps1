@@ -94,7 +94,7 @@ try {
     Invoke-CheckedCommand "terraform" @($TerraformChdir, "plan", "-out=$PlanPath", "-var", $LambdaImageTagVar)
 
     if (-not $AutoApprove) {
-        $Confirmation = Read-Host "Apply this scheduler plan? Type 'yes' to continue"
+        $Confirmation = Read-Host "Apply this ingestion scheduler plan? Type 'yes' to continue"
         if ($Confirmation -ne "yes") {
             Write-Host "Apply cancelled."
             return
