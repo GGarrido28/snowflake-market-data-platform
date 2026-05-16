@@ -58,6 +58,13 @@ function Invoke-CheckedCommandOutput {
     return ($Output -join [Environment]::NewLine)
 }
 
+function Test-DockerEngine {
+    docker info *> $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker is installed but the Docker engine is not reachable. Start Docker Desktop and wait until it reports that the Linux engine is running, then rerun this script."
+    }
+}
+
 function Get-ImageTagFromUri {
     param([Parameter(Mandatory = $true)][string]$ImageUri)
 
@@ -116,6 +123,7 @@ Require-Command "git"
 Require-Command "terraform"
 if (-not $SkipBuild -and -not $PlanOnly) {
     Require-Command "docker"
+    Test-DockerEngine
 }
 
 $env:AWS_PROFILE = $Profile
