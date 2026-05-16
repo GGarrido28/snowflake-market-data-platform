@@ -70,7 +70,7 @@ $env:AWS_REGION = $Region
 
 Write-Host "Using AWS profile '$Profile' in region '$Region'."
 try {
-    Invoke-CheckedCommand "aws" @("sts", "get-caller-identity", "--profile", $Profile)
+    Invoke-CheckedCommand "aws" @("sts", "get-caller-identity", "--profile", $Profile, "--no-cli-pager")
 } catch {
     throw "AWS credentials check failed. Run 'aws sso login --profile $Profile' and try again. Details: $($_.Exception.Message)"
 }
@@ -123,7 +123,8 @@ try {
                 "--region",
                 $Region,
                 "--profile",
-                $Profile
+                $Profile,
+                "--no-cli-pager"
             )
         }
     }
