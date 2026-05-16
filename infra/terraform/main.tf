@@ -26,6 +26,19 @@ locals {
     : {},
     length(var.kalshi_series_tags) > 0 ? { KALSHI_SERIES_TAGS = join(",", var.kalshi_series_tags) } : {}
   )
+  kalshi_events_schedule_input = {
+    s3_bucket      = var.s3_bucket_name
+    s3_prefix      = local.kalshi_events_s3_prefix
+    status         = var.kalshi_events_status
+    event_ticker   = var.kalshi_events_event_ticker != null && var.kalshi_events_event_ticker != "" ? var.kalshi_events_event_ticker : null
+    series_tickers = var.kalshi_events_event_ticker != null && var.kalshi_events_event_ticker != "" ? null : var.kalshi_events_series_tickers
+  }
+  kalshi_series_schedule_input = {
+    s3_bucket     = var.s3_bucket_name
+    s3_prefix     = local.kalshi_series_s3_prefix
+    series_ticker = var.kalshi_series_ticker != null && var.kalshi_series_ticker != "" ? var.kalshi_series_ticker : null
+    tags          = var.kalshi_series_ticker != null && var.kalshi_series_ticker != "" ? null : var.kalshi_series_tags
+  }
   kalshi_api_secret_resource_arns = concat(
     var.kalshi_api_secret_arn != null && var.kalshi_api_secret_arn != "" ? [var.kalshi_api_secret_arn] : [],
     var.kalshi_api_secret_name != null && var.kalshi_api_secret_name != "" ? [data.aws_secretsmanager_secret.kalshi_api[0].arn] : []

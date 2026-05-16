@@ -34,7 +34,18 @@ terraform -chdir=infra/terraform init
 
 The MLB teams schedule is intentionally created in a disabled state because team metadata is low-change reference data. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "ENABLED"` in `terraform.tfvars` if you need recurring refreshes before applying.
 
-Kalshi Events and Series Lambdas are deployed without EventBridge schedules in this phase. Configure Kalshi authentication with `kalshi_api_secret_arn` or `kalshi_api_secret_name`; Terraform passes the matching `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME` environment variable and grants the Lambda roles read access to that secret reference.
+Kalshi Events and Series schedules default to hourly and enabled:
+
+```hcl
+kalshi_events_schedule_expression = "cron(0 * * * ? *)"
+kalshi_events_schedule_timezone   = "America/Chicago"
+kalshi_events_schedule_state      = "ENABLED"
+kalshi_series_schedule_expression = "cron(0 * * * ? *)"
+kalshi_series_schedule_timezone   = "America/Chicago"
+kalshi_series_schedule_state      = "ENABLED"
+```
+
+Set either Kalshi schedule state to `DISABLED` in `terraform.tfvars` to pause scheduled ingestion without removing the schedule. Keep the cadence hourly or slower for this public project. Configure Kalshi authentication with `kalshi_api_secret_arn` or `kalshi_api_secret_name`; Terraform passes the matching `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME` environment variable and grants the Lambda roles read access to that secret reference.
 
 ## Deploy With Script
 
@@ -56,13 +67,13 @@ The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and 
 
 ## Deploy Scheduler Only
 
-After the Lambda image has already been deployed, use the scheduler script to plan and apply Terraform without rebuilding or pushing a container image:
+After the Lambda image has already been deployed, use the scheduler script to plan and apply Terraform without rebuilding or pushing a container image. The script name is historical, but it now preserves the deployed image tag and manages all Terraform scheduler changes, including the Kalshi Events and Series schedules:
 
 ```powershell
 .\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2
 ```
 
-The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. To preview without applying, run:
+The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. After apply, it verifies the MLB Teams, Kalshi Events, and Kalshi Series schedules. To preview without applying, run:
 
 ```powershell
 .\scripts\deploy_mlb_teams_scheduler.ps1 -Profile ggarrido -Region us-east-2 -PlanOnly
@@ -118,7 +129,8 @@ Terraform creates:
 - IAM read role scoped to the managed MLB and Kalshi S3 prefixes for Snowflake external stage access.
 - CloudWatch log groups.
 - Lambda functions using the pushed container image.
-- EventBridge Scheduler schedule for the Lambda, disabled by default but visible in AWS and Terraform.
+- EventBridge Scheduler schedule for the MLB Teams Lambda, disabled by default but visible in AWS and Terraform.
+- Hourly EventBridge Scheduler schedules for the Kalshi Events and Series Lambdas, enabled by default and scoped to conservative MLB/BaseBall payloads.
 
 Snowpipe setup instructions live in [`docs/mlb_teams_snowpipe.md`](./mlb_teams_snowpipe.md).
 
@@ -176,6 +188,35 @@ Get-Content kalshi-series-response.json
 ```
 
 The responses include `row_count` and `s3_uri` values under the `raw/kalshi/events/` or `raw/kalshi/series/` prefixes.
+
+## Scheduled Kalshi Payloads
+
+The Kalshi EventBridge schedules invoke their matching Lambda only. The scheduler IAM policy for each schedule is scoped to the corresponding Lambda ARN, and the target payload is generated from Terraform variables.
+
+The default Events schedule payload is:
+
+```json
+{
+  "s3_bucket": "snowflake-kalshi-project",
+  "s3_prefix": "raw/kalshi/events",
+  "status": "open",
+  "series_tickers": ["KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"]
+}
+```
+
+If `kalshi_events_event_ticker` is set, Terraform sends `event_ticker` instead of `series_tickers`.
+
+The default Series schedule payload is:
+
+```json
+{
+  "s3_bucket": "snowflake-kalshi-project",
+  "s3_prefix": "raw/kalshi/series",
+  "tags": ["BaseBall"]
+}
+```
+
+If `kalshi_series_ticker` is set, Terraform sends `series_ticker` instead of `tags`.
 
 ## Updating The Function
 

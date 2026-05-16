@@ -25,3 +25,57 @@ resource "aws_scheduler_schedule" "mlb_teams" {
     aws_iam_role_policy_attachment.mlb_teams_scheduler_invoke,
   ]
 }
+
+resource "aws_scheduler_schedule" "kalshi_events" {
+  name        = "${local.kalshi_events_name}-schedule"
+  description = "Runs ${local.kalshi_events_name} hourly with the configured conservative scope."
+  state       = var.kalshi_events_schedule_state
+
+  schedule_expression          = var.kalshi_events_schedule_expression
+  schedule_expression_timezone = var.kalshi_events_schedule_timezone
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.kalshi_events.arn
+    role_arn = aws_iam_role.kalshi_events_scheduler.arn
+
+    input = jsonencode({
+      for key, value in local.kalshi_events_schedule_input : key => value
+      if value != null
+    })
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.kalshi_events_scheduler_invoke,
+  ]
+}
+
+resource "aws_scheduler_schedule" "kalshi_series" {
+  name        = "${local.kalshi_series_name}-schedule"
+  description = "Runs ${local.kalshi_series_name} hourly with the configured conservative scope."
+  state       = var.kalshi_series_schedule_state
+
+  schedule_expression          = var.kalshi_series_schedule_expression
+  schedule_expression_timezone = var.kalshi_series_schedule_timezone
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.kalshi_series.arn
+    role_arn = aws_iam_role.kalshi_series_scheduler.arn
+
+    input = jsonencode({
+      for key, value in local.kalshi_series_schedule_input : key => value
+      if value != null
+    })
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.kalshi_series_scheduler_invoke,
+  ]
+}
