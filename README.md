@@ -94,6 +94,11 @@ KALSHI_MARKETS_EVENT_QUERY_FILE=src/market_data_platform/queries/kalshi/markets_
 
 The scraper runs the query against Snowflake, then fetches markets + orderbooks + trades for each returned event ticker. Markets scraping is expensive (orderbook and trades are called per market), so keep the query narrow until you know how many markets each event produces. The three scope env vars are mutually exclusive — set at most one.
 
+## Kalshi API Credentials
+Local scraper runs can use `KALSHI_API_KEY_ID` plus `KALSHI_API_KEY`, where `KALSHI_API_KEY` points at the local RSA private key PEM file. AWS-deployed ingestion should use AWS Secrets Manager instead by setting `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME`.
+
+Setup instructions and the expected secret JSON shape live in [`docs/kalshi_secrets_manager.md`](./docs/kalshi_secrets_manager.md).
+
 ## Events Scraper Status
 The events scraper defaults to open events only. To include non-open or historical events in `RAW_EVENTS`, set:
 

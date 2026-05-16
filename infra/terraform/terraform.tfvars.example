@@ -21,3 +21,8 @@ log_retention_days     = 14
 # Terraform to replace the initial placeholder trust relationship.
 snowflake_storage_aws_iam_user_arn = null
 snowflake_storage_aws_external_id  = null
+
+# Optional: ARN for the AWS Secrets Manager secret that stores Kalshi API
+# credentials. When set, Terraform creates a read policy that the future Kalshi
+# ingestion Lambda role can attach.
+kalshi_api_secret_arn = null
