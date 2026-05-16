@@ -50,7 +50,8 @@ def _row_matches_tags(row: dict[str, Any], tags: list[str]) -> bool:
     row_tags = row.get("tags")
     if not isinstance(row_tags, list):
         return False
-    return row_tags == tags
+    normalized_row_tags = {str(tag).casefold() for tag in row_tags}
+    return all(tag.casefold() in normalized_row_tags for tag in tags)
 
 
 def normalize_series(rows: list[dict[str, Any]], *, ingested_at: str) -> list[dict[str, Any]]:

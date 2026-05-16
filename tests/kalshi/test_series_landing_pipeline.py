@@ -31,13 +31,13 @@ class FakeSeriesClient:
                 "ticker": "KXMLBSPREAD",
                 "category": "Sports",
                 "title": "MLB spreads",
-                "tags": ["BaseBall"],
+                "tags": ["BaseBall", "Sports"],
             },
             {
                 "ticker": "KXMLBTOTAL",
                 "category": "Sports",
                 "title": "MLB totals",
-                "tags": ["BaseBall"],
+                "tags": ["baseball"],
             },
             {
                 "ticker": "KXNBA",

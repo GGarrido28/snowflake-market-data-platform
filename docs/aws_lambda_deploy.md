@@ -52,7 +52,7 @@ The Kalshi Events and Series deploy path is:
   -Region us-east-2
 ```
 
-The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and push the Lambda image, apply the full Terraform stack, and invoke smoke tests. Run them from PowerShell. The Kalshi script defaults Events to the MLB series tickers `KXMLBSPREAD`, `KXMLBTOTAL`, and `KXMLBGAME`, and defaults Series to `tags = ["BaseBall"]`; override with `-EventsEventTicker`, `-EventsSeriesTicker`, `-EventsSeriesTickers`, `-SeriesTicker`, or `-SeriesTags` when needed.
+The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and push the Lambda image, apply the full Terraform stack, and invoke smoke tests. Run them from PowerShell. The Kalshi script defaults Events to the MLB series tickers `KXMLBSPREAD`, `KXMLBTOTAL`, and `KXMLBGAME`, and defaults Series to rows whose tags contain `BaseBall`; override with `-EventsEventTicker`, `-EventsSeriesTicker`, `-EventsSeriesTickers`, `-SeriesTicker`, or `-SeriesTags` when needed.
 
 ## Deploy Scheduler Only
 
@@ -160,7 +160,7 @@ aws lambda invoke `
 Get-Content kalshi-events-response.json
 ```
 
-Kalshi Series defaults to `tags = ["BaseBall"]`, or accepts an exact series ticker in either the invocation payload or `kalshi_series_ticker`:
+Kalshi Series defaults to rows whose tags contain `BaseBall`, or accepts an exact series ticker in either the invocation payload or `kalshi_series_ticker`:
 
 ```powershell
 $SeriesFunctionName = terraform -chdir=infra/terraform output -raw kalshi_series_lambda_function_name
