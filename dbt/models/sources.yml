@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: kalshi_raw
-    description: Raw Kalshi data landed in Snowflake by the Python ingestion layer.
+    description: Raw Kalshi data landed in Snowflake by direct loaders and S3/Snowpipe ingestion paths.
     database: "{{ env_var('DBT_SOURCE_DATABASE', 'PROD') }}"
     schema: "{{ env_var('DBT_SOURCE_SCHEMA', 'RAW') }}"
     tables:
@@ -191,7 +191,7 @@ sources:
             data_type: timestamp string
       - name: events
         identifier: RAW_EVENTS
-        description: Raw event-level payloads from the Kalshi API.
+        description: Current-state event-level payloads from the Kalshi API, keyed by event_ticker after direct loading or Snowpipe merge.
         columns:
           - name: event_ticker
             description: Stable Kalshi event ticker; the primary join key from events to markets.
@@ -223,9 +223,24 @@ sources:
           - name: product_metadata
             description: Nested JSON metadata returned for product-specific event details.
             data_type: object
+          - name: ingested_at
+            description: Timestamp assigned by the ingestion job when the source file or direct load row was produced.
+            data_type: timestamp
+          - name: raw_payload
+            description: Original Kalshi event payload retained for audit and schema-drift inspection.
+            data_type: object
+          - name: source_file
+            description: S3 object key loaded by Snowpipe; null for rows written by the direct loader.
+            data_type: string
+          - name: source_row_number
+            description: Row number within the loaded S3 object; null for rows written by the direct loader.
+            data_type: number
+          - name: snowpipe_loaded_at
+            description: Timestamp Snowflake recorded when scanning the source file; null for rows written by the direct loader.
+            data_type: timestamp
       - name: series
         identifier: RAW_SERIES
-        description: Raw series-level payloads from the Kalshi API.
+        description: Current-state series-level payloads from the Kalshi API, keyed by ticker after direct loading or Snowpipe merge.
         columns:
           - name: ticker
             description: Stable Kalshi series ticker; the primary join key from series to events.
@@ -238,7 +253,7 @@ sources:
             data_type: string
           - name: tags
             description: List of Kalshi-provided tags attached to the series.
-            data_type: array<string>
+            data_type: variant
           - name: frequency
             description: Recurrence cadence for events in the series.
             data_type: string
@@ -251,6 +266,21 @@ sources:
           - name: last_updated_ts
             description: Most recent series metadata update timestamp returned by the API.
             data_type: timestamp string
+          - name: ingested_at
+            description: Timestamp assigned by the ingestion job when the source file or direct load row was produced.
+            data_type: timestamp
+          - name: raw_payload
+            description: Original Kalshi series payload retained for audit and schema-drift inspection.
+            data_type: object
+          - name: source_file
+            description: S3 object key loaded by Snowpipe; null for rows written by the direct loader.
+            data_type: string
+          - name: source_row_number
+            description: Row number within the loaded S3 object; null for rows written by the direct loader.
+            data_type: number
+          - name: snowpipe_loaded_at
+            description: Timestamp Snowflake recorded when scanning the source file; null for rows written by the direct loader.
+            data_type: timestamp
   - name: mlb_raw
     description: Raw MLB reference data landed in Snowflake by S3 and Snowpipe.
     database: "{{ env_var('DBT_SOURCE_DATABASE', 'PROD') }}"

@@ -149,6 +149,35 @@ HAVING COUNT(*) > 1;
 
 The duplicate checks should return zero rows.
 
+## dbt Staging Contract
+
+The final `RAW_EVENTS` and `RAW_SERIES` tables remain the only dbt sources for
+Kalshi Events and Series. The transient load tables are Snowpipe inboxes and
+must not be referenced by dbt models.
+
+| Staging model | Raw table | Raw columns projected |
+| --- | --- | --- |
+| `stg_kalshi_events` | `RAW_EVENTS` | `event_ticker`, `series_ticker`, `category`, `title`, `sub_title`, `available_on_brokers`, `mutually_exclusive`, `collateral_return_type`, `last_updated_ts`, `product_metadata` |
+| `stg_kalshi_series` | `RAW_SERIES` | `ticker`, `category`, `title`, `tags`, `frequency`, `fee_multiplier`, `fee_type`, `last_updated_ts` |
+
+The S3/Snowpipe path adds audit columns to both final raw tables:
+`ingested_at`, `raw_payload`, `source_file`, `source_row_number`, and
+`snowpipe_loaded_at`. Those columns are retained on the raw sources for load
+validation and drift inspection, but the staging models do not currently project
+them into the analytics contract.
+
+After sample Events and Series files have landed and the merge tasks have run,
+validate dbt with:
+
+```powershell
+cd dbt
+$env:DBT_PROFILES_DIR = (Get-Location).Path
+dbt deps
+dbt parse
+dbt compile --select stg_kalshi_events stg_kalshi_series
+dbt build --select stg_kalshi_series stg_kalshi_events
+```
+
 ## Cleanup Behavior
 
 The cleanup tasks run daily after 2 AM Central and delete load-table rows older
