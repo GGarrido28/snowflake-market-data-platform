@@ -91,6 +91,8 @@ class KalshiEventsSeriesSnowpipeSqlTests(unittest.TestCase):
         self.assertIn("Manual Smoke Tests", runbook)
         self.assertIn("CI-Safe Tests", runbook)
         self.assertIn("python -m unittest discover -s tests -v", runbook)
+        self.assertIn("Copy-Item profiles.yml.example profiles.yml", runbook)
+        self.assertIn("dbt deps", runbook)
         self.assertIn("dbt parse --profiles-dir .", runbook)
 
     def test_runbook_documents_cost_controls(self):

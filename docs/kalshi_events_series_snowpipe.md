@@ -252,6 +252,8 @@ green in pull requests:
 C:\Users\gabri\anaconda3\Scripts\conda.exe run -n snowflake-kalshi python -m unittest discover -s tests -v
 
 cd dbt
+Copy-Item profiles.yml.example profiles.yml
+C:\Users\gabri\anaconda3\Scripts\conda.exe run -n snowflake-kalshi dbt deps
 $env:SNOWFLAKE_ACCOUNT = "ci"
 $env:SNOWFLAKE_USER = "ci"
 $env:SNOWFLAKE_WAREHOUSE = "ci"
