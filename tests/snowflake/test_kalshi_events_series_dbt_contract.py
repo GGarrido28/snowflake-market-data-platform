@@ -1,4 +1,5 @@
 import re
+import unittest
 from pathlib import Path
 
 
@@ -95,33 +96,47 @@ def _documented_columns(schema_text: str, model_name: str) -> list[str]:
     return columns
 
 
-def test_dbt_sources_still_point_at_final_raw_events_and_series_tables():
-    sources = SOURCES_PATH.read_text(encoding="utf-8")
+class KalshiEventsSeriesDbtContractTests(unittest.TestCase):
+    def test_dbt_sources_still_point_at_final_raw_events_and_series_tables(self):
+        sources = SOURCES_PATH.read_text(encoding="utf-8")
 
-    assert "identifier: RAW_EVENTS" in _table_block(sources, "events")
-    assert "identifier: RAW_SERIES" in _table_block(sources, "series")
-    assert "identifier: RAW_KALSHI_EVENTS_LOAD" not in sources
-    assert "identifier: RAW_KALSHI_SERIES_LOAD" not in sources
+        self.assertIn("identifier: RAW_EVENTS", _table_block(sources, "events"))
+        self.assertIn("identifier: RAW_SERIES", _table_block(sources, "series"))
+        self.assertNotIn("identifier: RAW_KALSHI_EVENTS_LOAD", sources)
+        self.assertNotIn("identifier: RAW_KALSHI_SERIES_LOAD", sources)
+
+    def test_staging_models_project_landed_events_and_series_columns(self):
+        self.assertEqual(
+            _projected_columns(EVENTS_MODEL_PATH.read_text(encoding="utf-8")),
+            EVENTS_STAGING_PROJECTION,
+        )
+        self.assertEqual(
+            _projected_columns(SERIES_MODEL_PATH.read_text(encoding="utf-8")),
+            SERIES_STAGING_PROJECTION,
+        )
+
+    def test_snowpipe_final_raw_tables_cover_staging_inputs_and_load_metadata(self):
+        snowpipe_sql = SNOWPIPE_SQL_PATH.read_text(encoding="utf-8")
+        events_columns = _create_table_columns(snowpipe_sql, "RAW_EVENTS")
+        series_columns = _create_table_columns(snowpipe_sql, "RAW_SERIES")
+
+        self.assertTrue(set(EVENTS_STAGING_PROJECTION).issubset(events_columns))
+        self.assertTrue(set(SERIES_STAGING_PROJECTION).issubset(series_columns))
+        self.assertTrue(LOAD_METADATA_COLUMNS.issubset(events_columns))
+        self.assertTrue(LOAD_METADATA_COLUMNS.issubset(series_columns))
+
+    def test_staging_schema_documents_events_and_series_model_outputs(self):
+        schema = STAGING_SCHEMA_PATH.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            _documented_columns(schema, "stg_kalshi_events"),
+            list(EVENTS_STAGING_PROJECTION.values()),
+        )
+        self.assertEqual(
+            _documented_columns(schema, "stg_kalshi_series"),
+            list(SERIES_STAGING_PROJECTION.values()),
+        )
 
 
-def test_staging_models_project_landed_events_and_series_columns():
-    assert _projected_columns(EVENTS_MODEL_PATH.read_text(encoding="utf-8")) == EVENTS_STAGING_PROJECTION
-    assert _projected_columns(SERIES_MODEL_PATH.read_text(encoding="utf-8")) == SERIES_STAGING_PROJECTION
-
-
-def test_snowpipe_final_raw_tables_cover_staging_inputs_and_load_metadata():
-    snowpipe_sql = SNOWPIPE_SQL_PATH.read_text(encoding="utf-8")
-    events_columns = _create_table_columns(snowpipe_sql, "RAW_EVENTS")
-    series_columns = _create_table_columns(snowpipe_sql, "RAW_SERIES")
-
-    assert set(EVENTS_STAGING_PROJECTION).issubset(events_columns)
-    assert set(SERIES_STAGING_PROJECTION).issubset(series_columns)
-    assert LOAD_METADATA_COLUMNS.issubset(events_columns)
-    assert LOAD_METADATA_COLUMNS.issubset(series_columns)
-
-
-def test_staging_schema_documents_events_and_series_model_outputs():
-    schema = STAGING_SCHEMA_PATH.read_text(encoding="utf-8")
-
-    assert _documented_columns(schema, "stg_kalshi_events") == list(EVENTS_STAGING_PROJECTION.values())
-    assert _documented_columns(schema, "stg_kalshi_series") == list(SERIES_STAGING_PROJECTION.values())
+if __name__ == "__main__":
+    unittest.main()
