@@ -75,12 +75,18 @@ The final current-state tables remain:
    SHOW PIPES LIKE 'PIPE_KALSHI_SERIES';
    ```
 
-   Copy each `notification_channel` ARN into S3 `ObjectCreated` notifications:
+   Copy each `notification_channel` ARN into Terraform-managed S3
+   `ObjectCreated` notifications:
 
    | Pipe | Prefix | Suffix |
    | --- | --- | --- |
    | `PIPE_KALSHI_EVENTS` | `raw/kalshi/events/` | `.jsonl` |
    | `PIPE_KALSHI_SERIES` | `raw/kalshi/series/` | `.jsonl` |
+
+   The shared bucket notification Terraform workflow is documented in
+   [`snowpipe_s3_notifications.md`](./snowpipe_s3_notifications.md). Configure
+   the MLB Teams, Kalshi Events, and Kalshi Series pipe notification channels
+   together because Terraform owns the bucket's full notification configuration.
 
 6. If files landed before notifications existed, refresh the pipes:
 

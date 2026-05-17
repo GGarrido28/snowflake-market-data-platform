@@ -40,6 +40,40 @@ variable "kalshi_series_s3_prefix" {
   default     = "raw/kalshi/series"
 }
 
+variable "mlb_teams_pipe_notification_channel" {
+  description = "Snowflake PIPE_MLB_TEAMS notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
+  type        = string
+  default     = null
+
+  validation {
+    condition = (
+      length(compact([
+        trimspace(coalesce(var.mlb_teams_pipe_notification_channel, "")),
+        trimspace(coalesce(var.kalshi_events_pipe_notification_channel, "")),
+        trimspace(coalesce(var.kalshi_series_pipe_notification_channel, "")),
+      ])) == 0
+      || length(compact([
+        trimspace(coalesce(var.mlb_teams_pipe_notification_channel, "")),
+        trimspace(coalesce(var.kalshi_events_pipe_notification_channel, "")),
+        trimspace(coalesce(var.kalshi_series_pipe_notification_channel, "")),
+      ])) == 3
+    )
+    error_message = "Set all three Snowpipe notification channel ARNs together, or leave all three null. Terraform owns the bucket's full notification configuration."
+  }
+}
+
+variable "kalshi_events_pipe_notification_channel" {
+  description = "Snowflake PIPE_KALSHI_EVENTS notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_series_pipe_notification_channel" {
+  description = "Snowflake PIPE_KALSHI_SERIES notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
+  type        = string
+  default     = null
+}
+
 variable "lambda_image_tag" {
   description = "Container image tag to deploy from the managed ECR repository."
   type        = string

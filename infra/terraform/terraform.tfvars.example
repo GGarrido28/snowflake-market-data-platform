@@ -8,6 +8,13 @@ s3_prefix      = "raw/mlb/teams"
 kalshi_events_s3_prefix = "raw/kalshi/events"
 kalshi_series_s3_prefix = "raw/kalshi/series"
 
+# Snowflake pipe notification_channel SQS ARNs from SHOW PIPES.
+# Set all three together before applying aws_s3_bucket_notification because
+# Terraform owns the bucket's full notification configuration.
+mlb_teams_pipe_notification_channel     = null
+kalshi_events_pipe_notification_channel = null
+kalshi_series_pipe_notification_channel = null
+
 lambda_image_tag               = "latest"
 mlb_teams_sport_id             = "1"
 mlb_teams_schedule_expression = "cron(0 6 * * ? *)"

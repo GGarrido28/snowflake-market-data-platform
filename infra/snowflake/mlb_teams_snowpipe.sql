@@ -8,8 +8,8 @@
 --    STORAGE_AWS_EXTERNAL_ID into infra/terraform/terraform.tfvars.
 -- 4. Re-apply Terraform so the IAM role trusts Snowflake.
 -- 5. Run the file format, stage, table, and pipe section.
--- 6. Run SHOW PIPES and wire the notification_channel ARN into an S3
---    ObjectCreated notification for prefix raw/mlb/teams/ and suffix .jsonl.
+-- 6. Run SHOW PIPES and copy the notification_channel ARN into the Terraform
+--    Snowpipe S3 notification variables. See docs/snowpipe_s3_notifications.md.
 
 USE DATABASE PROD;
 USE SCHEMA RAW;

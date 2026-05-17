@@ -66,11 +66,17 @@ The pipe intentionally omits `ON_ERROR = 'ABORT_STATEMENT'`. Snowpipe pipe defin
 
 5. Run the remaining SQL in `infra/snowflake/mlb_teams_snowpipe.sql` to create the file format, stage, raw table, and pipe.
 
-6. Run `SHOW PIPES LIKE 'PIPE_MLB_TEAMS';`, copy the `notification_channel` ARN, and configure an S3 `ObjectCreated` notification for:
+6. Run `SHOW PIPES LIKE 'PIPE_MLB_TEAMS';`, copy the `notification_channel`
+   ARN, and manage the S3 `ObjectCreated` notification through Terraform:
 
    - Prefix: `raw/mlb/teams/`
    - Suffix: `.jsonl`
    - Destination: the Snowflake-managed SQS ARN from `notification_channel`
+
+   The shared bucket notification Terraform workflow is documented in
+   [`snowpipe_s3_notifications.md`](./snowpipe_s3_notifications.md). Configure
+   all three Snowpipe notification channel variables together because Terraform
+   owns the bucket's full notification configuration.
 
 7. Invoke the Lambda once to land the initial snapshot:
 

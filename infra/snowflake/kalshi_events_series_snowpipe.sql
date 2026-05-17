@@ -17,10 +17,8 @@
 --    integration can read the Kalshi prefixes without introducing a second
 --    Snowflake external ID/IAM trust path.
 -- 4. Run the file format, stages, load/final tables, pipes, streams, and tasks.
--- 5. Run SHOW PIPES and wire each notification_channel ARN into S3
---    ObjectCreated notifications:
---      - raw/kalshi/events/ + .jsonl -> PIPE_KALSHI_EVENTS
---      - raw/kalshi/series/ + .jsonl -> PIPE_KALSHI_SERIES
+-- 5. Run SHOW PIPES and copy each notification_channel ARN into the Terraform
+--    Snowpipe S3 notification variables. See docs/snowpipe_s3_notifications.md.
 
 USE DATABASE PROD;
 USE SCHEMA RAW;

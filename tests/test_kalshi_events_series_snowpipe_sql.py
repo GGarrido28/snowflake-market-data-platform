@@ -88,6 +88,7 @@ class KalshiEventsSeriesSnowpipeSqlTests(unittest.TestCase):
         self.assertIn("aws lambda invoke", runbook)
         self.assertIn("raw/kalshi/events/", runbook)
         self.assertIn("raw/kalshi/series/", runbook)
+        self.assertIn("snowpipe_s3_notifications.md", runbook)
         self.assertIn("Manual Smoke Tests", runbook)
         self.assertIn("CI-Safe Tests", runbook)
         self.assertIn("python -m unittest discover -s tests -v", runbook)
