@@ -37,6 +37,7 @@ class SnowpipeS3NotificationTerraformTests(unittest.TestCase):
 
         self.assertIn('resource "aws_s3_bucket_notification" "snowpipe"', terraform)
         self.assertIn("count = local.manage_snowpipe_bucket_notifications ? 1 : 0", terraform)
+        self.assertIn("prevent_destroy = true", terraform)
         self.assertIn('events        = ["s3:ObjectCreated:*"]', terraform)
         self.assertIn('filter_suffix = ".jsonl"', terraform)
 
@@ -67,6 +68,7 @@ class SnowpipeS3NotificationTerraformTests(unittest.TestCase):
         self.assertIn("snowflake-kalshi-project", notification_runbook)
         self.assertIn("owns the bucket's full notification configuration", notification_runbook)
         self.assertIn("Set all three Snowpipe notification channel ARNs together", notification_runbook)
+        self.assertIn("prevent_destroy", notification_runbook)
 
         for pipe_name in ("PIPE_MLB_TEAMS", "PIPE_KALSHI_EVENTS", "PIPE_KALSHI_SERIES"):
             self.assertIn(pipe_name, notification_runbook)

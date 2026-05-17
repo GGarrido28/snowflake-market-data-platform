@@ -55,3 +55,7 @@ notifications that are not declared in configuration.
 The Terraform resource is disabled while all three notification channel
 variables are `null`, so unrelated infrastructure deploys can still run before
 Snowflake pipes exist. If any channel is set, all three must be set.
+
+After the resource is imported or applied, `prevent_destroy` blocks accidental
+removal of the bucket notification configuration if a later Terraform run omits
+the notification channel variables.

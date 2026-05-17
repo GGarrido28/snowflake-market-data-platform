@@ -36,6 +36,10 @@ resource "aws_s3_bucket_notification" "snowpipe" {
 
   bucket = data.aws_s3_bucket.landing.id
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   dynamic "queue" {
     for_each = local.snowpipe_bucket_notifications
 
