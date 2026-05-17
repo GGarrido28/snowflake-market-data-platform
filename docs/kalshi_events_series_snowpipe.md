@@ -31,18 +31,36 @@ The final current-state tables remain:
 
 ## Setup Steps
 
-1. Confirm Terraform has been applied and the Snowflake S3 read role can read
+1. Deploy or update the Kalshi Events and Series Lambdas, schedules, and shared
+   infrastructure from PowerShell:
+
+   ```powershell
+   .\scripts\deploy_kalshi_lambdas.ps1 `
+     -Profile ggarrido `
+     -Region us-east-2
+   ```
+
+   The script builds and pushes the Lambda image, applies Terraform, and smoke
+   invokes both Kalshi Lambdas unless `-SkipInvoke`, `-SkipEventsInvoke`, or
+   `-SkipSeriesInvoke` is supplied. For scheduler-only changes after the image
+   is already deployed, use:
+
+   ```powershell
+   .\scripts\deploy_ingestion_schedulers.ps1 -Profile ggarrido -Region us-east-2
+   ```
+
+2. Confirm Terraform has been applied and the Snowflake S3 read role can read
    the Kalshi landing prefixes:
 
    ```powershell
    terraform -chdir=infra/terraform output -raw snowflake_s3_read_role_arn
    ```
 
-2. Open `infra/snowflake/kalshi_events_series_snowpipe.sql` and replace
+3. Open `infra/snowflake/kalshi_events_series_snowpipe.sql` and replace
    `<task_warehouse>` with the Snowflake warehouse that should run the merge and
    cleanup tasks.
 
-3. Run the SQL file in Snowflake with a role that can alter the existing
+4. Run the SQL file in Snowflake with a role that can alter the existing
    `S3_MLB_TEAMS_INT` storage integration and create objects in `PROD.RAW`.
 
    The SQL reuses `S3_MLB_TEAMS_INT` intentionally. Reusing the existing
@@ -50,7 +68,7 @@ The final current-state tables remain:
    trust path intact while expanding the allowed S3 locations to include the
    Kalshi Events and Series prefixes.
 
-4. Run:
+5. Run:
 
    ```sql
    SHOW PIPES LIKE 'PIPE_KALSHI_EVENTS';
@@ -64,14 +82,61 @@ The final current-state tables remain:
    | `PIPE_KALSHI_EVENTS` | `raw/kalshi/events/` | `.jsonl` |
    | `PIPE_KALSHI_SERIES` | `raw/kalshi/series/` | `.jsonl` |
 
-5. If files landed before notifications existed, refresh the pipes:
+6. If files landed before notifications existed, refresh the pipes:
 
    ```sql
    ALTER PIPE PROD.RAW.PIPE_KALSHI_EVENTS REFRESH;
    ALTER PIPE PROD.RAW.PIPE_KALSHI_SERIES REFRESH;
    ```
 
+## Manual Smoke Tests
+
+These manual smoke tests require AWS credentials, deployed Lambda functions, and
+Kalshi credentials configured through AWS Secrets Manager. Keep them separate
+from CI-safe tests.
+
+Invoke Events with the conservative MLB scope:
+
+```powershell
+$Region = "us-east-2"
+$EventsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_events_lambda_function_name
+
+aws lambda invoke `
+  --function-name $EventsFunctionName `
+  --payload '{"series_tickers":["KXMLBSPREAD","KXMLBTOTAL","KXMLBGAME"],"status":"open"}' `
+  --cli-binary-format raw-in-base64-out `
+  --region $Region `
+  kalshi-events-response.json
+
+Get-Content kalshi-events-response.json
+```
+
+The response should include a positive `row_count` when matching Events are
+available and an `s3_uri` under `raw/kalshi/events/`.
+
+Invoke Series with the conservative tag scope:
+
+```powershell
+$Region = "us-east-2"
+$SeriesFunctionName = terraform -chdir=infra/terraform output -raw kalshi_series_lambda_function_name
+
+aws lambda invoke `
+  --function-name $SeriesFunctionName `
+  --payload '{"tags":["BaseBall"]}' `
+  --cli-binary-format raw-in-base64-out `
+  --region $Region `
+  kalshi-series-response.json
+
+Get-Content kalshi-series-response.json
+```
+
+The response should include a positive `row_count` and an `s3_uri` under
+`raw/kalshi/series/`.
+
 ## Validation SQL
+
+Run these checks after the Lambda smoke invoke or scheduled run has written S3
+files and the Snowpipe notifications have had time to fire.
 
 Check pipe status:
 
@@ -178,9 +243,45 @@ dbt compile --select stg_kalshi_events stg_kalshi_series
 dbt build --select stg_kalshi_series stg_kalshi_events
 ```
 
+## CI-Safe Tests
+
+These tests do not require live AWS or Snowflake credentials and should remain
+green in pull requests:
+
+```powershell
+C:\Users\gabri\anaconda3\Scripts\conda.exe run -n snowflake-kalshi python -m unittest discover -s tests -v
+
+cd dbt
+Copy-Item profiles.yml.example profiles.yml
+C:\Users\gabri\anaconda3\Scripts\conda.exe run -n snowflake-kalshi dbt deps
+$env:SNOWFLAKE_ACCOUNT = "ci"
+$env:SNOWFLAKE_USER = "ci"
+$env:SNOWFLAKE_WAREHOUSE = "ci"
+$env:SNOWFLAKE_PRIVATE_KEY_PATH = "NUL"
+C:\Users\gabri\anaconda3\Scripts\conda.exe run -n snowflake-kalshi dbt parse --profiles-dir .
+```
+
 ## Cleanup Behavior
 
 The cleanup tasks run daily after 2 AM Central and delete load-table rows older
 than two days only when the corresponding append-only stream reports no backlog.
 This keeps Snowpipe inbox tables small without truncating them or deleting rows
 before the merge tasks have consumed the stream.
+
+## Cost Controls
+
+This path intentionally differs from the MLB Teams append-only pattern because
+Kalshi Events and Series change more often than static team metadata.
+
+- EventBridge schedules default to hourly and can be paused with
+  `kalshi_events_schedule_state = "DISABLED"` or
+  `kalshi_series_schedule_state = "DISABLED"`.
+- Events are scoped by default to `KXMLBSPREAD`, `KXMLBTOTAL`, and `KXMLBGAME`
+  with `status = "open"` instead of crawling every historical event.
+- Series are scoped by default to rows tagged `BaseBall` instead of every
+  Kalshi series.
+- Snowpipe loads append-only files into transient inbox tables with one day of
+  retention, then stream-triggered tasks merge only the latest row per stable
+  key into `RAW_EVENTS` and `RAW_SERIES`.
+- Cleanup tasks remove old load-table rows only after the matching stream has no
+  backlog, keeping storage small without losing unmerged rows.

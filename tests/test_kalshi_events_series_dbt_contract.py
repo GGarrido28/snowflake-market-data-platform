@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 DBT_MODELS_PATH = REPO_ROOT / "dbt" / "models"
 SOURCES_PATH = DBT_MODELS_PATH / "sources.yml"
 STAGING_SCHEMA_PATH = DBT_MODELS_PATH / "staging" / "schema.yml"
