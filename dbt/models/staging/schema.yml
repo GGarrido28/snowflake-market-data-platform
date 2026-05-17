@@ -68,8 +68,6 @@ models:
         tests:
           - not_null
           - unique
-      - name: category
-        description: Event category used to group markets into broad topical buckets.
       - name: series_ticker
         description: Series identifier shared across related Kalshi events.
         tests:
@@ -77,15 +75,27 @@ models:
               arguments:
                 to: ref('stg_kalshi_series')
                 field: series_ticker
+      - name: category
+        description: Event category used to group markets into broad topical buckets.
       - name: event_title
         description: Human-readable event title.
       - name: event_subtitle
         description: Secondary event label from the Kalshi API.
+      - name: is_available_on_brokers
+        description: Whether the event is available through partnered brokers.
+      - name: is_mutually_exclusive
+        description: Whether the event's markets are mutually exclusive outcomes.
+      - name: collateral_return_type
+        description: Collateral return policy applied to the event's markets.
+      - name: updated_at
+        description: Event metadata update timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: product_metadata
+        description: Nested JSON metadata returned for product-specific event details.
   - name: stg_kalshi_series
     description: Typed staging view over raw Kalshi series with normalized series metadata.
     columns:
       - name: series_ticker
-        description: Stable Kalshi series identifier sourced from RAW_SERIES.series_ticker.
+        description: Stable Kalshi series identifier sourced from RAW_SERIES.ticker.
         tests:
           - not_null
           - unique

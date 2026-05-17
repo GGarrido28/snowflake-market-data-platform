@@ -27,7 +27,7 @@ There is also a current orderbook snapshot at the market level.
 
 | Raw table | API endpoint | Main key(s) | Important fields | API field types |
 | --- | --- | --- | --- | --- |
-| `RAW_SERIES` | `GET /series` | `ticker` | `category`, `title`, `tags`, `frequency`, `fee_type`, `fee_multiplier`, `volume_fp`, `last_updated_ts` | string, array<string>, integer, decimal string, timestamp string |
+| `RAW_SERIES` | `GET /series` | `ticker` | `category`, `title`, `tags`, `frequency`, `fee_type`, `fee_multiplier`, `last_updated_ts` | string, variant, integer, timestamp string |
 | `RAW_EVENTS` | `GET /events` | `event_ticker`, `series_ticker` | `category`, `title`, `sub_title`, `product_metadata`, `last_updated_ts` | string, object, timestamp string |
 | `RAW_MARKETS` | `GET /markets` | `ticker`, `event_ticker` | `status`, `title`, `subtitle`, `created_time`, `updated_time`, `last_price_dollars`, `volume_fp` | string, timestamp string, decimal string |
 | `RAW_MARKET_TRADES` | `GET /markets/trades` | `trade_id`, `ticker` | `count_fp`, `yes_price_dollars`, `no_price_dollars`, `taker_side`, `created_time` | string, decimal string, timestamp string |
@@ -41,6 +41,12 @@ There is also a current orderbook snapshot at the market level.
 - `stg_kalshi_markets.market_ticker` comes from `RAW_MARKETS.ticker`
 - `stg_kalshi_market_orderbooks.market_ticker` comes from `RAW_MARKET_ORDERBOOKS.market_ticker`
 - `stg_kalshi_markets.event_ticker` links markets back to events
+
+`RAW_EVENTS` and `RAW_SERIES` also retain ingestion metadata from the S3/Snowpipe
+path: `ingested_at`, `raw_payload`, `source_file`, `source_row_number`, and
+`snowpipe_loaded_at`. The staging models intentionally project only the stable
+business columns above, leaving the audit columns available on the raw sources
+for load validation and schema-drift checks.
 
 ## Quick SQL Joins
 
