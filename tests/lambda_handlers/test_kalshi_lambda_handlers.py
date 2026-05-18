@@ -42,10 +42,20 @@ class KalshiLambdaHandlerTests(unittest.TestCase):
         mock_series_run.assert_called_once_with({})
 
     def test_legacy_handler_modules_delegate_to_packaged_entrypoints(self):
-        self.assertIs(legacy_events_handler.lambda_handler, events_handler.lambda_handler)
-        self.assertIs(legacy_series_handler.lambda_handler, series_handler.lambda_handler)
         self.assertIs(legacy_events_handler.run, events_handler.run)
         self.assertIs(legacy_series_handler.run, series_handler.run)
+
+        with patch.object(legacy_events_handler, "run", return_value={"row_count": 3}) as mock_events_run:
+            result = legacy_events_handler.lambda_handler({"series_ticker": "KXMLBTOTAL"}, Mock())
+
+        self.assertEqual(result, {"row_count": 3})
+        mock_events_run.assert_called_once_with({"series_ticker": "KXMLBTOTAL"})
+
+        with patch.object(legacy_series_handler, "run", return_value={"row_count": 4}) as mock_series_run:
+            result = legacy_series_handler.lambda_handler({"series_ticker": "KXMLBGAME"}, Mock())
+
+        self.assertEqual(result, {"row_count": 4})
+        mock_series_run.assert_called_once_with({"series_ticker": "KXMLBGAME"})
 
     def test_terraform_uses_packaged_kalshi_entrypoints(self):
         terraform = TERRAFORM_LAMBDA_PATH.read_text(encoding="utf-8")
