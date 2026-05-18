@@ -40,7 +40,12 @@ terraform -chdir=infra/terraform init
 
 The MLB teams schedule is intentionally created in a disabled state because team metadata is low-change reference data. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "ENABLED"` in `terraform.tfvars` if you need recurring refreshes before applying.
 
-Kalshi Events and Series schedules default to hourly and enabled:
+Kalshi Events and Series schedules default to hourly and enabled. Kalshi
+Markets defaults to every 30 minutes and enabled, offset at 15 and 45 minutes
+past each hour so it does not start at the same minute as Events and Series.
+When no exact market/event scope is set, the scheduled payload uses the packaged
+MLB event-query SQL file at
+`src/market_data_platform/queries/kalshi/markets_mlb_events.sql`.
 
 ```hcl
 kalshi_events_schedule_expression = "cron(0 * * * ? *)"
@@ -49,9 +54,12 @@ kalshi_events_schedule_state      = "ENABLED"
 kalshi_series_schedule_expression = "cron(0 * * * ? *)"
 kalshi_series_schedule_timezone   = "America/Chicago"
 kalshi_series_schedule_state      = "ENABLED"
+kalshi_markets_schedule_expression = "cron(15,45 * * * ? *)"
+kalshi_markets_schedule_timezone   = "America/Chicago"
+kalshi_markets_schedule_state      = "ENABLED"
 ```
 
-Set either Kalshi schedule state to `DISABLED` in `terraform.tfvars` to pause scheduled ingestion without removing the schedule. Keep the cadence hourly or slower for this public project. Configure Kalshi authentication with `kalshi_api_secret_arn` or `kalshi_api_secret_name`; Terraform passes the matching `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME` environment variable and grants the Lambda roles read access to that secret reference.
+Set any Kalshi schedule state to `DISABLED` in `terraform.tfvars` to pause scheduled ingestion without removing the schedule. Keep Events and Series hourly or slower, and keep Markets at 30 minutes or slower unless you have validated the cost/freshness tradeoff. Keep Markets offset from Events and Series to avoid stacking Kalshi requests on the hour. Configure Kalshi authentication with `kalshi_api_secret_arn` or `kalshi_api_secret_name`; Terraform passes the matching `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME` environment variable and grants the Lambda roles read access to that secret reference. The SQL-driven Markets schedule also needs the `kalshi_markets_snowflake_*` settings so the Lambda can run the query that selects event tickers.
 
 ## Deploy With Script
 
@@ -73,13 +81,13 @@ The scripts initialize Terraform, bootstrap ECR, log Docker into ECR, build and 
 
 ## Deploy Scheduler Only
 
-After the Lambda image has already been deployed, use the ingestion scheduler script to plan and apply Terraform without rebuilding or pushing a container image. It preserves the deployed image tag and manages Terraform scheduler changes, including the Kalshi Events and Series schedules:
+After the Lambda image has already been deployed, use the ingestion scheduler script to plan and apply Terraform without rebuilding or pushing a container image. It preserves the deployed image tag and manages Terraform scheduler changes, including the Kalshi Events, Series, and Markets schedules:
 
 ```powershell
 .\scripts\deploy_ingestion_schedulers.ps1 -Profile ggarrido -Region us-east-2
 ```
 
-The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. After apply, it verifies the MLB Teams, Kalshi Events, and Kalshi Series schedules. To preview without applying, run:
+The script reads the current `lambda_image_uri` from Terraform state and passes that image tag back into Terraform, so scheduler-only deploys do not accidentally change the Lambda image. After apply, it verifies the MLB Teams, Kalshi Events, Kalshi Series, and Kalshi Markets schedules. To preview without applying, run:
 
 ```powershell
 .\scripts\deploy_ingestion_schedulers.ps1 -Profile ggarrido -Region us-east-2 -PlanOnly
@@ -138,6 +146,7 @@ Terraform creates:
 - Lambda functions using the pushed container image.
 - EventBridge Scheduler schedule for the MLB Teams Lambda, disabled by default but visible in AWS and Terraform.
 - Hourly EventBridge Scheduler schedules for the Kalshi Events and Series Lambdas, enabled by default and scoped to conservative MLB/BaseBall payloads.
+- A 30-minute EventBridge Scheduler schedule for the Kalshi Markets Lambda, enabled by default, offset at 15 and 45 minutes past each hour, and scoped to the configured Markets target or the packaged MLB event-query SQL file.
 
 Snowpipe setup instructions live in [`docs/mlb_teams_snowpipe.md`](./mlb_teams_snowpipe.md).
 
@@ -201,7 +210,10 @@ Snowflake RAW landing setup for these prefixes lives in [`docs/kalshi_events_ser
 ## Invoke Kalshi Markets
 
 Kalshi Markets requires a conservative scope: set exactly one market ticker,
-event ticker, or event-query SQL file. The default trade mode is incremental.
+event ticker, or event-query SQL file for manual runs. The scheduled run does
+not need a single ticker binding; if no exact Markets scope is configured, its
+payload uses `src/market_data_platform/queries/kalshi/markets_mlb_events.sql`
+to query Snowflake for the event tickers to ingest. The default trade mode is incremental.
 For each scoped market, the Lambda reads its own state object such as
 `state/kalshi/market_trades/market_ticker=KXTEST/watermark.json`, fetches trades
 using Kalshi `min_ts`/`max_ts` bounds, writes market trade JSONL, then advances
@@ -270,6 +282,28 @@ The default Series schedule payload is:
 ```
 
 If `kalshi_series_ticker` is set, Terraform sends `series_ticker` instead of `tags`.
+
+The default Markets schedule payload is:
+
+```json
+{
+  "s3_bucket": "snowflake-kalshi-project",
+  "markets_s3_prefix": "raw/kalshi/markets",
+  "market_orderbooks_s3_prefix": "raw/kalshi/market_orderbooks",
+  "market_trades_s3_prefix": "raw/kalshi/market_trades",
+  "market_trades_state_prefix": "state/kalshi/market_trades",
+  "trade_fetch_mode": "incremental",
+  "trade_first_run_lookback_hours": 24,
+  "trade_watermark_overlap_seconds": 60,
+  "event_query_file": "src/market_data_platform/queries/kalshi/markets_mlb_events.sql"
+}
+```
+
+If `kalshi_markets_market_ticker`, `kalshi_markets_event_ticker`, or
+`kalshi_markets_event_query_file` is set, Terraform uses that configured
+Markets scope instead of the packaged query-file fallback. The query-file scope
+requires the `kalshi_markets_snowflake_*` settings because the Lambda runs the
+SQL in Snowflake before calling Kalshi for markets.
 
 ## Updating The Function
 

@@ -83,6 +83,11 @@ output "kalshi_series_schedule_name" {
   value       = aws_scheduler_schedule.kalshi_series.name
 }
 
+output "kalshi_markets_schedule_name" {
+  description = "EventBridge Scheduler schedule name for the Kalshi markets Lambda."
+  value       = aws_scheduler_schedule.kalshi_markets.name
+}
+
 output "snowflake_s3_read_role_arn" {
   description = "IAM role ARN to use in Snowflake storage integrations for managed landing prefixes."
   value       = aws_iam_role.snowflake_s3_read.arn

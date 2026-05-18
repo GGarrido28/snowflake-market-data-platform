@@ -179,6 +179,29 @@ variable "kalshi_series_schedule_state" {
   }
 }
 
+variable "kalshi_markets_schedule_expression" {
+  description = "Half-hour EventBridge Scheduler expression for the Kalshi markets Lambda, offset from the hourly events and series schedules."
+  type        = string
+  default     = "cron(15,45 * * * ? *)"
+}
+
+variable "kalshi_markets_schedule_timezone" {
+  description = "Time zone used to evaluate the Kalshi markets schedule expression."
+  type        = string
+  default     = "America/Chicago"
+}
+
+variable "kalshi_markets_schedule_state" {
+  description = "Whether the Kalshi markets EventBridge Scheduler schedule is enabled. The schedule defaults to the packaged MLB event-query SQL file when no exact market or event scope is configured."
+  type        = string
+  default     = "ENABLED"
+
+  validation {
+    condition     = contains(["ENABLED", "DISABLED"], var.kalshi_markets_schedule_state)
+    error_message = "kalshi_markets_schedule_state must be ENABLED or DISABLED."
+  }
+}
+
 variable "snowflake_storage_aws_iam_user_arn" {
   description = "Snowflake STORAGE_AWS_IAM_USER_ARN from DESC INTEGRATION. Leave null until the storage integration exists."
   type        = string

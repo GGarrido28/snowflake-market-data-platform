@@ -107,7 +107,8 @@ try {
         $ScheduleOutputNames = @(
             "mlb_teams_schedule_name",
             "kalshi_events_schedule_name",
-            "kalshi_series_schedule_name"
+            "kalshi_series_schedule_name",
+            "kalshi_markets_schedule_name"
         )
 
         foreach ($OutputName in $ScheduleOutputNames) {
