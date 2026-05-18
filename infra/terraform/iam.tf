@@ -122,6 +122,45 @@ resource "aws_iam_role_policy_attachment" "kalshi_series_s3_write" {
   policy_arn = aws_iam_policy.kalshi_series_s3_write.arn
 }
 
+resource "aws_iam_role" "kalshi_markets_lambda" {
+  name               = "${local.kalshi_markets_name}-lambda-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_markets_lambda_basic" {
+  role       = aws_iam_role.kalshi_markets_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+data "aws_iam_policy_document" "kalshi_markets_s3_write" {
+  statement {
+    sid    = "WriteKalshiMarketsLandingObjects"
+    effect = "Allow"
+
+    actions = [
+      "s3:AbortMultipartUpload",
+      "s3:PutObject",
+    ]
+
+    resources = [
+      "${data.aws_s3_bucket.landing.arn}/${local.kalshi_markets_s3_prefix}/*",
+      "${data.aws_s3_bucket.landing.arn}/${local.kalshi_market_orderbooks_s3_prefix}/*",
+      "${data.aws_s3_bucket.landing.arn}/${local.kalshi_market_trades_s3_prefix}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "kalshi_markets_s3_write" {
+  name        = "${local.kalshi_markets_name}-s3-write"
+  description = "Allows the Kalshi markets Lambda to write landing files to S3."
+  policy      = data.aws_iam_policy_document.kalshi_markets_s3_write.json
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_markets_s3_write" {
+  role       = aws_iam_role.kalshi_markets_lambda.name
+  policy_arn = aws_iam_policy.kalshi_markets_s3_write.arn
+}
+
 data "aws_iam_policy_document" "scheduler_assume_role" {
   statement {
     effect = "Allow"
@@ -255,4 +294,45 @@ resource "aws_iam_role_policy_attachment" "kalshi_series_kalshi_api_secret_read"
 
   role       = aws_iam_role.kalshi_series_lambda.name
   policy_arn = aws_iam_policy.kalshi_api_secret_read[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_markets_kalshi_api_secret_read" {
+  count = length(local.kalshi_api_secret_resource_arns) > 0 ? 1 : 0
+
+  role       = aws_iam_role.kalshi_markets_lambda.name
+  policy_arn = aws_iam_policy.kalshi_api_secret_read[0].arn
+}
+
+data "aws_iam_policy_document" "kalshi_markets_snowflake_private_key_secret_read" {
+  count = length(local.kalshi_markets_snowflake_private_key_secret_resource_arns) > 0 ? 1 : 0
+
+  statement {
+    sid    = "ReadSnowflakePrivateKeySecret"
+    effect = "Allow"
+
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+
+    resources = local.kalshi_markets_snowflake_private_key_secret_resource_arns
+  }
+}
+
+resource "aws_iam_policy" "kalshi_markets_snowflake_private_key_secret_read" {
+  count = length(local.kalshi_markets_snowflake_private_key_secret_resource_arns) > 0 ? 1 : 0
+
+  name        = "${local.kalshi_markets_name}-snowflake-private-key-read"
+  description = "Allows the Kalshi markets Lambda to read its Snowflake private key from AWS Secrets Manager."
+  policy      = data.aws_iam_policy_document.kalshi_markets_snowflake_private_key_secret_read[0].json
+
+  tags = merge(var.tags, {
+    Purpose = "kalshi-markets-snowflake-private-key-read"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_markets_snowflake_private_key_secret_read" {
+  count = length(local.kalshi_markets_snowflake_private_key_secret_resource_arns) > 0 ? 1 : 0
+
+  role       = aws_iam_role.kalshi_markets_lambda.name
+  policy_arn = aws_iam_policy.kalshi_markets_snowflake_private_key_secret_read[0].arn
 }

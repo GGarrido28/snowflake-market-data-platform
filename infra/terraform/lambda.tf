@@ -89,3 +89,41 @@ resource "aws_lambda_function" "kalshi_series" {
     aws_iam_role_policy_attachment.kalshi_series_kalshi_api_secret_read,
   ]
 }
+
+resource "aws_lambda_function" "kalshi_markets" {
+  function_name = local.kalshi_markets_name
+  role          = aws_iam_role.kalshi_markets_lambda.arn
+  package_type  = "Image"
+  image_uri     = local.image_uri
+
+  architectures = ["x86_64"]
+  memory_size   = var.lambda_memory_mb
+  timeout       = var.lambda_timeout_seconds
+
+  image_config {
+    command = ["market_data_platform.lambda_handlers.kalshi_markets.lambda_handler"]
+  }
+
+  environment {
+    variables = merge(
+      {
+        KALSHI_MARKETS_S3_BUCKET           = var.s3_bucket_name
+        KALSHI_MARKETS_S3_PREFIX           = local.kalshi_markets_s3_prefix
+        KALSHI_MARKET_ORDERBOOKS_S3_PREFIX = local.kalshi_market_orderbooks_s3_prefix
+        KALSHI_MARKET_TRADES_S3_PREFIX     = local.kalshi_market_trades_s3_prefix
+        KALSHI_MARKETS_PAGINATE_TRADES     = tostring(var.kalshi_markets_paginate_trades)
+      },
+      local.kalshi_secret_environment,
+      local.kalshi_markets_scope_environment,
+      local.kalshi_markets_snowflake_environment,
+    )
+  }
+
+  depends_on = [
+    aws_cloudwatch_log_group.kalshi_markets_lambda,
+    aws_iam_role_policy_attachment.kalshi_markets_lambda_basic,
+    aws_iam_role_policy_attachment.kalshi_markets_s3_write,
+    aws_iam_role_policy_attachment.kalshi_markets_kalshi_api_secret_read,
+    aws_iam_role_policy_attachment.kalshi_markets_snowflake_private_key_secret_read,
+  ]
+}

@@ -28,6 +28,11 @@ output "kalshi_series_lambda_function_name" {
   value       = aws_lambda_function.kalshi_series.function_name
 }
 
+output "kalshi_markets_lambda_function_name" {
+  description = "Kalshi markets Lambda function name for manual invocation."
+  value       = aws_lambda_function.kalshi_markets.function_name
+}
+
 output "kalshi_events_landing_s3_uri" {
   description = "S3 prefix where the Kalshi events Lambda writes NDJSON files."
   value       = "s3://${var.s3_bucket_name}/${local.kalshi_events_s3_prefix}/"
@@ -36,6 +41,26 @@ output "kalshi_events_landing_s3_uri" {
 output "kalshi_series_landing_s3_uri" {
   description = "S3 prefix where the Kalshi series Lambda writes NDJSON files."
   value       = "s3://${var.s3_bucket_name}/${local.kalshi_series_s3_prefix}/"
+}
+
+output "kalshi_markets_landing_s3_uri" {
+  description = "S3 prefix where the Kalshi markets Lambda writes market NDJSON files."
+  value       = "s3://${var.s3_bucket_name}/${local.kalshi_markets_s3_prefix}/"
+}
+
+output "kalshi_market_orderbooks_landing_s3_uri" {
+  description = "S3 prefix where the Kalshi markets Lambda writes market orderbook NDJSON files."
+  value       = "s3://${var.s3_bucket_name}/${local.kalshi_market_orderbooks_s3_prefix}/"
+}
+
+output "kalshi_market_trades_landing_s3_uri" {
+  description = "S3 prefix where the Kalshi markets Lambda writes recent market trade NDJSON files."
+  value       = "s3://${var.s3_bucket_name}/${local.kalshi_market_trades_s3_prefix}/"
+}
+
+output "kalshi_markets_manual_invoke_payload" {
+  description = "JSON payload template for manually invoking the Kalshi markets Lambda."
+  value       = jsonencode(local.kalshi_markets_manual_invoke_payload)
 }
 
 output "mlb_teams_schedule_name" {

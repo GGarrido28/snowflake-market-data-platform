@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import snowflake.connector
+import base64
 import logging
 import json
 import re
@@ -16,6 +17,17 @@ from cryptography.hazmat.primitives import serialization
 from market_data_platform.config.settings import SNOWFLAKE_CONFIG
 
 logging.basicConfig(level=logging.INFO)
+
+SNOWFLAKE_PRIVATE_KEY_SECRET_FIELDS = (
+    "snowflake_private_key_pem",
+    "private_key_pem",
+    "SNOWFLAKE_PRIVATE_KEY_PEM",
+)
+SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_SECRET_FIELDS = (
+    "snowflake_private_key_passphrase",
+    "private_key_passphrase",
+    "SNOWFLAKE_PRIVATE_KEY_PASSPHRASE",
+)
 
 
 class SnowflakeManager:
@@ -81,12 +93,14 @@ class SnowflakeManager:
         self.account: str | None = SNOWFLAKE_CONFIG.get("account")
         self.user: str | None = SNOWFLAKE_CONFIG.get("user")
         self.private_key_path: str | None = SNOWFLAKE_CONFIG.get("private_key_path")
+        self.private_key_pem: str | None = SNOWFLAKE_CONFIG.get("private_key_pem")
+        self.private_key_secret_arn: str | None = SNOWFLAKE_CONFIG.get("private_key_secret_arn")
+        self.private_key_secret_name: str | None = SNOWFLAKE_CONFIG.get("private_key_secret_name")
         self.private_key_passphrase: str | None = SNOWFLAKE_CONFIG.get("private_key_passphrase")
 
         for param_name, param_value in [
             ("account", self.account),
             ("user", self.user),
-            ("private_key_path", self.private_key_path),
         ]:
             if not param_value:
                 env_var = f"SNOWFLAKE_{param_name.upper()}"
@@ -104,8 +118,99 @@ class SnowflakeManager:
             logging.info(f"Database: {self.database}, Schema: {self.schema}")
             logging.info(f"Warehouse: {self.warehouse}, Role: {self.role}")
 
+    def _decode_private_key_secret_response(self, response: dict[str, Any]) -> dict[str, str]:
+        if "SecretString" in response and response["SecretString"]:
+            raw_secret = response["SecretString"]
+        elif "SecretBinary" in response and response["SecretBinary"]:
+            secret_binary = response["SecretBinary"]
+            if isinstance(secret_binary, str):
+                secret_binary = secret_binary.encode("utf-8")
+            raw_secret = base64.b64decode(secret_binary).decode("utf-8")
+        else:
+            raise ValueError("Snowflake private key secret is missing SecretString or SecretBinary")
+
+        try:
+            secret_payload = json.loads(raw_secret)
+        except json.JSONDecodeError:
+            return {"private_key_pem": raw_secret}
+
+        if not isinstance(secret_payload, dict):
+            raise ValueError("Snowflake private key secret must be a JSON object or PEM string")
+        return secret_payload
+
+    def _secret_value(
+        self,
+        secret_payload: dict[str, str],
+        fields: tuple[str, ...],
+        label: str,
+        *,
+        required: bool = True,
+    ) -> str | None:
+        for field in fields:
+            value = secret_payload.get(field)
+            if value:
+                if not isinstance(value, str):
+                    raise ValueError(f"Snowflake secret field {field} for {label} must be a string")
+                return value
+        if required:
+            raise ValueError(f"Snowflake secret is missing required field for {label}: one of {fields}")
+        return None
+
+    def _load_private_key_secret(self) -> tuple[str, str | None]:
+        secret_identifier = self.private_key_secret_arn or self.private_key_secret_name
+        if not secret_identifier:
+            raise ValueError("Snowflake private key secret identifier is missing")
+
+        import boto3
+
+        client = boto3.client("secretsmanager")
+        response = client.get_secret_value(SecretId=secret_identifier)
+        secret_payload = self._decode_private_key_secret_response(response)
+        private_key_pem = self._secret_value(
+            secret_payload,
+            SNOWFLAKE_PRIVATE_KEY_SECRET_FIELDS,
+            "private key PEM",
+        )
+        passphrase = self._secret_value(
+            secret_payload,
+            SNOWFLAKE_PRIVATE_KEY_PASSPHRASE_SECRET_FIELDS,
+            "private key passphrase",
+            required=False,
+        )
+        return private_key_pem, passphrase
+
+    def _serialize_private_key(self, private_key_pem: str, passphrase: str | None) -> bytes:
+        passphrase_bytes = passphrase.encode() if passphrase else None
+        private_key = serialization.load_pem_private_key(
+            private_key_pem.encode("utf-8"),
+            password=passphrase_bytes,
+            backend=default_backend(),
+        )
+        return private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
     def _load_private_key(self) -> bytes:
         """Load and serialize the RSA private key for Snowflake key-pair auth."""
+        if self.private_key_pem:
+            return self._serialize_private_key(self.private_key_pem, self.private_key_passphrase)
+
+        if self.private_key_secret_arn or self.private_key_secret_name:
+            private_key_pem, passphrase = self._load_private_key_secret()
+            return self._serialize_private_key(
+                private_key_pem,
+                passphrase or self.private_key_passphrase,
+            )
+
+        if not self.private_key_path:
+            raise ValueError(
+                "Set SNOWFLAKE_PRIVATE_KEY_PATH, SNOWFLAKE_PRIVATE_KEY_PEM, "
+                "SNOWFLAKE_PRIVATE_KEY_SECRET_ARN, or SNOWFLAKE_PRIVATE_KEY_SECRET_NAME "
+                "before connecting to Snowflake"
+            )
+
         key_path = Path(self.private_key_path).expanduser()
         if not key_path.exists():
             raise FileNotFoundError(

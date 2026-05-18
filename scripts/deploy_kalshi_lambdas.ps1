@@ -9,11 +9,16 @@ param(
     [string[]]$EventsSeriesTickers = @("KXMLBSPREAD", "KXMLBTOTAL", "KXMLBGAME"),
     [string]$SeriesTicker,
     [string[]]$SeriesTags = @("BaseBall"),
+    [string]$MarketsMarketTicker,
+    [string]$MarketsEventTicker,
+    [string]$MarketsEventQueryFile,
+    [switch]$MarketsPaginateTrades,
     [switch]$SkipInit,
     [switch]$SkipBuild,
     [switch]$SkipInvoke,
     [switch]$SkipEventsInvoke,
     [switch]$SkipSeriesInvoke,
+    [switch]$SkipMarketsInvoke,
     [switch]$PlanOnly,
     [switch]$AutoApprove
 )
@@ -134,6 +139,15 @@ if ($EventsEventTicker -and $EventsSeriesTicker) {
     throw "Use either -EventsEventTicker or -EventsSeriesTicker, not both."
 }
 
+$MarketsScopeCount = @(
+    $MarketsMarketTicker,
+    $MarketsEventTicker,
+    $MarketsEventQueryFile
+) | Where-Object { $_ }
+if ($MarketsScopeCount.Count -gt 1) {
+    throw "Use only one of -MarketsMarketTicker, -MarketsEventTicker, or -MarketsEventQueryFile."
+}
+
 Require-Command "aws"
 Require-Command "git"
 Require-Command "terraform"
@@ -221,8 +235,10 @@ Invoke-CheckedCommand "terraform" @($TerraformChdir, "apply", "-var", $LambdaIma
 
 $EventsFunctionName = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", "kalshi_events_lambda_function_name")).Trim()
 $SeriesFunctionName = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", "kalshi_series_lambda_function_name")).Trim()
+$MarketsFunctionName = (Invoke-CheckedCommandOutput "terraform" @($TerraformChdir, "output", "-raw", "kalshi_markets_lambda_function_name")).Trim()
 Write-Host "Deployed Kalshi Events Lambda '$EventsFunctionName'."
 Write-Host "Deployed Kalshi Series Lambda '$SeriesFunctionName'."
+Write-Host "Deployed Kalshi Markets Lambda '$MarketsFunctionName'."
 
 if ($SkipInvoke) {
     Write-Host "Skipping smoke invokes."
@@ -261,4 +277,28 @@ if (-not $SkipSeriesInvoke) {
         -FunctionName $SeriesFunctionName `
         -PayloadJson (Get-JsonPayload -Payload $SeriesPayload) `
         -ResponsePath (Join-Path $RepoRoot "kalshi-series-response.json")
+}
+
+if (-not $SkipMarketsInvoke) {
+    if ($MarketsScopeCount.Count -eq 0) {
+        Write-Host "Skipping Kalshi Markets smoke invoke because no Markets scope was provided. Pass -MarketsMarketTicker, -MarketsEventTicker, or -MarketsEventQueryFile to smoke test it."
+    } else {
+        $MarketsPayload = @{
+            paginate_trades = [bool]$MarketsPaginateTrades
+        }
+        if ($MarketsMarketTicker) {
+            $MarketsPayload["market_ticker"] = $MarketsMarketTicker
+        }
+        if ($MarketsEventTicker) {
+            $MarketsPayload["event_ticker"] = $MarketsEventTicker
+        }
+        if ($MarketsEventQueryFile) {
+            $MarketsPayload["event_query_file"] = $MarketsEventQueryFile
+        }
+
+        Invoke-LambdaSmokeTest `
+            -FunctionName $MarketsFunctionName `
+            -PayloadJson (Get-JsonPayload -Payload $MarketsPayload) `
+            -ResponsePath (Join-Path $RepoRoot "kalshi-markets-response.json")
+    }
 }
