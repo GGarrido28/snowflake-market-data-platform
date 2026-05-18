@@ -57,6 +57,11 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("SNOWFLAKE_USER", main)
         self.assertIn("SNOWFLAKE_PRIVATE_KEY_SECRET_ARN", main)
 
+    def test_optional_string_validations_handle_null_values(self):
+        variables = _read(VARIABLES_PATH)
+
+        self.assertNotRegex(variables, r'coalesce\(\s*var\.[^,\n]+,\s*""\s*\)')
+
     def test_markets_lambda_uses_image_command_secret_env_and_prefixes(self):
         terraform = _read(LAMBDA_PATH)
 
