@@ -13,7 +13,11 @@ locals {
     "/",
   )
   kalshi_market_trades_s3_prefix = trim(var.kalshi_market_trades_s3_prefix, "/")
-  image_uri                      = "${aws_ecr_repository.mlb_teams.repository_url}:${var.lambda_image_tag}"
+  kalshi_market_trades_state_prefix = trim(
+    var.kalshi_market_trades_state_prefix,
+    "/",
+  )
+  image_uri = "${aws_ecr_repository.mlb_teams.repository_url}:${var.lambda_image_tag}"
   snowflake_s3_read_prefixes = [
     local.s3_prefix,
     local.kalshi_events_s3_prefix,
@@ -51,11 +55,15 @@ locals {
   )
   kalshi_markets_manual_invoke_payload = merge(
     {
-      s3_bucket                   = var.s3_bucket_name
-      markets_s3_prefix           = local.kalshi_markets_s3_prefix
-      market_orderbooks_s3_prefix = local.kalshi_market_orderbooks_s3_prefix
-      market_trades_s3_prefix     = local.kalshi_market_trades_s3_prefix
-      paginate_trades             = var.kalshi_markets_paginate_trades
+      s3_bucket                       = var.s3_bucket_name
+      markets_s3_prefix               = local.kalshi_markets_s3_prefix
+      market_orderbooks_s3_prefix     = local.kalshi_market_orderbooks_s3_prefix
+      market_trades_s3_prefix         = local.kalshi_market_trades_s3_prefix
+      market_trades_state_prefix      = local.kalshi_market_trades_state_prefix
+      paginate_trades                 = var.kalshi_markets_paginate_trades
+      trade_fetch_mode                = var.kalshi_market_trades_fetch_mode
+      trade_first_run_lookback_hours  = var.kalshi_market_trades_first_run_lookback_hours
+      trade_watermark_overlap_seconds = var.kalshi_market_trades_watermark_overlap_seconds
     },
     var.kalshi_markets_market_ticker != null && var.kalshi_markets_market_ticker != "" ? { market_ticker = var.kalshi_markets_market_ticker } : {},
     var.kalshi_markets_event_ticker != null && var.kalshi_markets_event_ticker != "" ? { event_ticker = var.kalshi_markets_event_ticker } : {},

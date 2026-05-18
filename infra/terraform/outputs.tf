@@ -58,6 +58,11 @@ output "kalshi_market_trades_landing_s3_uri" {
   value       = "s3://${var.s3_bucket_name}/${local.kalshi_market_trades_s3_prefix}/"
 }
 
+output "kalshi_market_trades_state_s3_uri" {
+  description = "S3 prefix where the Kalshi markets Lambda stores non-secret market trade watermark state."
+  value       = "s3://${var.s3_bucket_name}/${local.kalshi_market_trades_state_prefix}/"
+}
+
 output "kalshi_markets_manual_invoke_payload" {
   description = "JSON payload template for manually invoking the Kalshi markets Lambda."
   value       = jsonencode(local.kalshi_markets_manual_invoke_payload)

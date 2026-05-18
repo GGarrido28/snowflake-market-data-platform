@@ -58,6 +58,12 @@ variable "kalshi_market_trades_s3_prefix" {
   default     = "raw/kalshi/market_trades"
 }
 
+variable "kalshi_market_trades_state_prefix" {
+  description = "S3 key prefix where the Kalshi markets Lambda stores non-secret market trade watermark state."
+  type        = string
+  default     = "state/kalshi/market_trades"
+}
+
 variable "mlb_teams_pipe_notification_channel" {
   description = "Snowflake PIPE_MLB_TEAMS notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
   type        = string
@@ -278,9 +284,53 @@ variable "kalshi_markets_event_query_file" {
 }
 
 variable "kalshi_markets_paginate_trades" {
-  description = "Whether the markets Lambda should paginate full trade history per market. Defaults false so manual invokes fetch only recent trades until watermarking is added."
+  description = "Legacy manual override for full trade-history pagination per market. Keep false for scheduled automation; use kalshi_market_trades_fetch_mode instead."
   type        = bool
   default     = false
+}
+
+variable "kalshi_market_trades_fetch_mode" {
+  description = "Default market trade fetch mode for the markets Lambda. incremental uses S3 watermarks; recent fetches one latest page; backfill requires explicit payload bounds."
+  type        = string
+  default     = "incremental"
+
+  validation {
+    condition     = contains(["incremental", "recent", "backfill", "full_history"], var.kalshi_market_trades_fetch_mode)
+    error_message = "kalshi_market_trades_fetch_mode must be incremental, recent, backfill, or full_history."
+  }
+}
+
+variable "kalshi_market_trades_first_run_lookback_hours" {
+  description = "Bounded lookback window for a market with no existing trade watermark."
+  type        = number
+  default     = 24
+
+  validation {
+    condition     = var.kalshi_market_trades_first_run_lookback_hours > 0
+    error_message = "kalshi_market_trades_first_run_lookback_hours must be greater than zero."
+  }
+}
+
+variable "kalshi_market_trades_watermark_overlap_seconds" {
+  description = "Small overlap subtracted from the last checked trade timestamp to avoid missing boundary-second trades."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.kalshi_market_trades_watermark_overlap_seconds >= 0
+    error_message = "kalshi_market_trades_watermark_overlap_seconds must be greater than or equal to zero."
+  }
+}
+
+variable "kalshi_markets_reserved_concurrency" {
+  description = "Reserved concurrency for the Kalshi markets Lambda. Defaults to 1 to serialize market trade watermark updates."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.kalshi_markets_reserved_concurrency >= 1
+    error_message = "kalshi_markets_reserved_concurrency must be at least 1."
+  }
 }
 
 variable "kalshi_markets_snowflake_account" {

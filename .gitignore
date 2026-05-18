@@ -26,6 +26,7 @@ dbt/dbt_packages/
 logs/
 response.json
 kalshi-events-response.json
+kalshi-markets-response.json
 kalshi-series-response.json
 
 # analysis cache — pulled fresh from Snowflake each time, not committed

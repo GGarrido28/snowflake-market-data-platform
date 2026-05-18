@@ -33,12 +33,15 @@ class Markets(KalshiBase):
         market_ticker: str | None = None,
         limit: int = DEFAULT_TRADES_PAGE_SIZE,
         all_pages: bool = True,
+        min_ts: int | None = None,
+        max_ts: int | None = None,
     ) -> list:
         '''Fetches trades for a specific market.
 
         Defaults to paginating through the full trade history via the cursor; the
         Kalshi API caps a single page at 1000 rows, so a one-shot request would
-        silently truncate any market with more trades than that.
+        silently truncate any market with more trades than that. Set min_ts and
+        max_ts to bound the paginated window for scheduled incremental runs.
         '''
         if all_pages:
             return self.get_paginated_results(
@@ -46,8 +49,17 @@ class Markets(KalshiBase):
                 "/markets/trades",
                 limit=limit,
                 ticker=market_ticker,
+                min_ts=min_ts,
+                max_ts=max_ts,
             )
-        response = self.make_request("GET", "/markets/trades", limit=limit, ticker=market_ticker)
+        response = self.make_request(
+            "GET",
+            "/markets/trades",
+            limit=limit,
+            ticker=market_ticker,
+            min_ts=min_ts,
+            max_ts=max_ts,
+        )
         return response.json().get("trades", [])
 
     def get_market(self, market_ticker: str) -> dict:
@@ -78,6 +90,7 @@ class Markets(KalshiBase):
         markets: list[dict] | None = None,
         progress_every: int = DETAIL_PROGRESS_EVERY,
         paginate_trades: bool = True,
+        trade_fetch_options_by_ticker: dict[str, dict] | None = None,
     ) -> dict:
         '''Fetches orderbooks and trades for a list of markets with progress logging.
 
@@ -116,7 +129,16 @@ class Markets(KalshiBase):
                         "orderbook": orderbook,
                     })
 
-                trades = self.get_market_trades(market_ticker, all_pages=paginate_trades)
+                trade_options = (trade_fetch_options_by_ticker or {}).get(market_ticker, {})
+                if trade_options:
+                    trades = self.get_market_trades(
+                        market_ticker,
+                        all_pages=trade_options.get("all_pages", paginate_trades),
+                        min_ts=trade_options.get("min_ts"),
+                        max_ts=trade_options.get("max_ts"),
+                    )
+                else:
+                    trades = self.get_market_trades(market_ticker, all_pages=paginate_trades)
                 if trades:
                     self.trades.extend(trades)
 

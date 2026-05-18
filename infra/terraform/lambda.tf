@@ -96,9 +96,10 @@ resource "aws_lambda_function" "kalshi_markets" {
   package_type  = "Image"
   image_uri     = local.image_uri
 
-  architectures = ["x86_64"]
-  memory_size   = var.lambda_memory_mb
-  timeout       = var.lambda_timeout_seconds
+  architectures                  = ["x86_64"]
+  memory_size                    = var.lambda_memory_mb
+  timeout                        = var.lambda_timeout_seconds
+  reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency
 
   image_config {
     command = ["market_data_platform.lambda_handlers.kalshi_markets.lambda_handler"]
@@ -107,11 +108,15 @@ resource "aws_lambda_function" "kalshi_markets" {
   environment {
     variables = merge(
       {
-        KALSHI_MARKETS_S3_BUCKET           = var.s3_bucket_name
-        KALSHI_MARKETS_S3_PREFIX           = local.kalshi_markets_s3_prefix
-        KALSHI_MARKET_ORDERBOOKS_S3_PREFIX = local.kalshi_market_orderbooks_s3_prefix
-        KALSHI_MARKET_TRADES_S3_PREFIX     = local.kalshi_market_trades_s3_prefix
-        KALSHI_MARKETS_PAGINATE_TRADES     = tostring(var.kalshi_markets_paginate_trades)
+        KALSHI_MARKETS_S3_BUCKET                       = var.s3_bucket_name
+        KALSHI_MARKETS_S3_PREFIX                       = local.kalshi_markets_s3_prefix
+        KALSHI_MARKET_ORDERBOOKS_S3_PREFIX             = local.kalshi_market_orderbooks_s3_prefix
+        KALSHI_MARKET_TRADES_S3_PREFIX                 = local.kalshi_market_trades_s3_prefix
+        KALSHI_MARKET_TRADES_STATE_PREFIX              = local.kalshi_market_trades_state_prefix
+        KALSHI_MARKETS_PAGINATE_TRADES                 = tostring(var.kalshi_markets_paginate_trades)
+        KALSHI_MARKET_TRADES_FETCH_MODE                = var.kalshi_market_trades_fetch_mode
+        KALSHI_MARKET_TRADES_FIRST_RUN_LOOKBACK_HOURS  = tostring(var.kalshi_market_trades_first_run_lookback_hours)
+        KALSHI_MARKET_TRADES_WATERMARK_OVERLAP_SECONDS = tostring(var.kalshi_market_trades_watermark_overlap_seconds)
       },
       local.kalshi_secret_environment,
       local.kalshi_markets_scope_environment,

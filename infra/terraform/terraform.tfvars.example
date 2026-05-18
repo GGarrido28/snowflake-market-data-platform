@@ -10,6 +10,7 @@ kalshi_series_s3_prefix = "raw/kalshi/series"
 kalshi_markets_s3_prefix          = "raw/kalshi/markets"
 kalshi_market_orderbooks_s3_prefix = "raw/kalshi/market_orderbooks"
 kalshi_market_trades_s3_prefix     = "raw/kalshi/market_trades"
+kalshi_market_trades_state_prefix  = "state/kalshi/market_trades"
 
 # Snowflake pipe notification_channel SQS ARNs from SHOW PIPES.
 # Set all three together before applying aws_s3_bucket_notification because
@@ -60,6 +61,10 @@ kalshi_markets_market_ticker      = null
 kalshi_markets_event_ticker       = null
 kalshi_markets_event_query_file   = null
 kalshi_markets_paginate_trades    = false
+kalshi_market_trades_fetch_mode    = "incremental"
+kalshi_market_trades_first_run_lookback_hours = 24
+kalshi_market_trades_watermark_overlap_seconds = 60
+kalshi_markets_reserved_concurrency = 1
 kalshi_markets_snowflake_account  = null
 kalshi_markets_snowflake_user     = null
 kalshi_markets_snowflake_warehouse = null
