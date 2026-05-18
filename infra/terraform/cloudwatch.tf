@@ -12,3 +12,8 @@ resource "aws_cloudwatch_log_group" "kalshi_series_lambda" {
   name              = "/aws/lambda/${local.kalshi_series_name}"
   retention_in_days = var.log_retention_days
 }
+
+resource "aws_cloudwatch_log_group" "kalshi_markets_lambda" {
+  name              = "/aws/lambda/${local.kalshi_markets_name}"
+  retention_in_days = var.log_retention_days
+}

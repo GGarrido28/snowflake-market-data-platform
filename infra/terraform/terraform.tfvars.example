@@ -7,6 +7,9 @@ s3_bucket_name = "snowflake-kalshi-project"
 s3_prefix      = "raw/mlb/teams"
 kalshi_events_s3_prefix = "raw/kalshi/events"
 kalshi_series_s3_prefix = "raw/kalshi/series"
+kalshi_markets_s3_prefix          = "raw/kalshi/markets"
+kalshi_market_orderbooks_s3_prefix = "raw/kalshi/market_orderbooks"
+kalshi_market_trades_s3_prefix     = "raw/kalshi/market_trades"
 
 # Snowflake pipe notification_channel SQS ARNs from SHOW PIPES.
 # Set all three together before applying aws_s3_bucket_notification because
@@ -53,3 +56,7 @@ kalshi_events_series_tickers = [
 ]
 kalshi_series_ticker        = null
 kalshi_series_tags          = ["BaseBall"]
+kalshi_markets_market_ticker      = null
+kalshi_markets_event_ticker       = null
+kalshi_markets_event_query_file   = null
+kalshi_markets_paginate_trades    = false
