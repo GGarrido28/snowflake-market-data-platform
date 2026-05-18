@@ -288,6 +288,33 @@ resource "aws_iam_role_policy_attachment" "kalshi_series_scheduler_invoke" {
   policy_arn = aws_iam_policy.kalshi_series_scheduler_invoke.arn
 }
 
+resource "aws_iam_role" "kalshi_markets_scheduler" {
+  name               = "${local.kalshi_markets_name}-scheduler-role"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
+}
+
+data "aws_iam_policy_document" "kalshi_markets_scheduler_invoke" {
+  statement {
+    sid    = "InvokeKalshiMarketsLambda"
+    effect = "Allow"
+
+    actions = ["lambda:InvokeFunction"]
+
+    resources = [aws_lambda_function.kalshi_markets.arn]
+  }
+}
+
+resource "aws_iam_policy" "kalshi_markets_scheduler_invoke" {
+  name        = "${local.kalshi_markets_name}-scheduler-invoke"
+  description = "Allows EventBridge Scheduler to invoke only the Kalshi markets Lambda."
+  policy      = data.aws_iam_policy_document.kalshi_markets_scheduler_invoke.json
+}
+
+resource "aws_iam_role_policy_attachment" "kalshi_markets_scheduler_invoke" {
+  role       = aws_iam_role.kalshi_markets_scheduler.name
+  policy_arn = aws_iam_policy.kalshi_markets_scheduler_invoke.arn
+}
+
 data "aws_iam_policy_document" "kalshi_api_secret_read" {
   count = length(local.kalshi_api_secret_resource_arns) > 0 ? 1 : 0
 

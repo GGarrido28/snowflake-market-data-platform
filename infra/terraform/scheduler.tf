@@ -79,3 +79,30 @@ resource "aws_scheduler_schedule" "kalshi_series" {
     aws_iam_role_policy_attachment.kalshi_series_scheduler_invoke,
   ]
 }
+
+resource "aws_scheduler_schedule" "kalshi_markets" {
+  name        = "${local.kalshi_markets_name}-schedule"
+  description = "Runs ${local.kalshi_markets_name} every 30 minutes with a bounded markets scope."
+  state       = var.kalshi_markets_schedule_state
+
+  schedule_expression          = var.kalshi_markets_schedule_expression
+  schedule_expression_timezone = var.kalshi_markets_schedule_timezone
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  target {
+    arn      = aws_lambda_function.kalshi_markets.arn
+    role_arn = aws_iam_role.kalshi_markets_scheduler.arn
+
+    input = jsonencode({
+      for key, value in local.kalshi_markets_schedule_input : key => value
+      if value != null
+    })
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.kalshi_markets_scheduler_invoke,
+  ]
+}

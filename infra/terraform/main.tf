@@ -53,6 +53,13 @@ locals {
     var.kalshi_markets_snowflake_private_key_secret_arn != null && var.kalshi_markets_snowflake_private_key_secret_arn != "" ? { SNOWFLAKE_PRIVATE_KEY_SECRET_ARN = var.kalshi_markets_snowflake_private_key_secret_arn } : {},
     var.kalshi_markets_snowflake_private_key_secret_name != null && var.kalshi_markets_snowflake_private_key_secret_name != "" ? { SNOWFLAKE_PRIVATE_KEY_SECRET_NAME = var.kalshi_markets_snowflake_private_key_secret_name } : {}
   )
+  kalshi_markets_default_schedule_event_query_file = "src/market_data_platform/queries/kalshi/markets_mlb_events.sql"
+  kalshi_markets_schedule_event_query_file = (
+    var.kalshi_markets_event_query_file != null && var.kalshi_markets_event_query_file != "" ? var.kalshi_markets_event_query_file :
+    var.kalshi_markets_market_ticker != null && var.kalshi_markets_market_ticker != "" ? null :
+    var.kalshi_markets_event_ticker != null && var.kalshi_markets_event_ticker != "" ? null :
+    local.kalshi_markets_default_schedule_event_query_file
+  )
   kalshi_markets_manual_invoke_payload = merge(
     {
       s3_bucket                       = var.s3_bucket_name
@@ -82,6 +89,21 @@ locals {
     series_ticker = var.kalshi_series_ticker != null && var.kalshi_series_ticker != "" ? var.kalshi_series_ticker : null
     tags          = var.kalshi_series_ticker != null && var.kalshi_series_ticker != "" ? null : var.kalshi_series_tags
   }
+  kalshi_markets_schedule_input = merge(
+    {
+      s3_bucket                       = var.s3_bucket_name
+      markets_s3_prefix               = local.kalshi_markets_s3_prefix
+      market_orderbooks_s3_prefix     = local.kalshi_market_orderbooks_s3_prefix
+      market_trades_s3_prefix         = local.kalshi_market_trades_s3_prefix
+      market_trades_state_prefix      = local.kalshi_market_trades_state_prefix
+      trade_fetch_mode                = var.kalshi_market_trades_fetch_mode
+      trade_first_run_lookback_hours  = var.kalshi_market_trades_first_run_lookback_hours
+      trade_watermark_overlap_seconds = var.kalshi_market_trades_watermark_overlap_seconds
+    },
+    var.kalshi_markets_market_ticker != null && var.kalshi_markets_market_ticker != "" ? { market_ticker = var.kalshi_markets_market_ticker } : {},
+    var.kalshi_markets_event_ticker != null && var.kalshi_markets_event_ticker != "" ? { event_ticker = var.kalshi_markets_event_ticker } : {},
+    local.kalshi_markets_schedule_event_query_file != null && local.kalshi_markets_schedule_event_query_file != "" ? { event_query_file = local.kalshi_markets_schedule_event_query_file } : {}
+  )
   kalshi_api_secret_resource_arns = concat(
     var.kalshi_api_secret_arn != null && var.kalshi_api_secret_arn != "" ? [var.kalshi_api_secret_arn] : [],
     var.kalshi_api_secret_name != null && var.kalshi_api_secret_name != "" ? [data.aws_secretsmanager_secret.kalshi_api[0].arn] : []

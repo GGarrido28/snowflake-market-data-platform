@@ -32,6 +32,10 @@ kalshi_events_schedule_state      = "ENABLED"
 kalshi_series_schedule_expression = "cron(0 * * * ? *)"
 kalshi_series_schedule_timezone   = "America/Chicago"
 kalshi_series_schedule_state      = "ENABLED"
+kalshi_markets_schedule_expression = "cron(0/30 * * * ? *)"
+kalshi_markets_schedule_timezone   = "America/Chicago"
+# Runs the SQL-driven Markets scope when no exact market or event binding is set.
+kalshi_markets_schedule_state      = "ENABLED"
 lambda_timeout_seconds = 60
 lambda_memory_mb       = 512
 log_retention_days     = 14
@@ -47,7 +51,9 @@ kalshi_api_secret_arn = null
 kalshi_api_secret_name = null
 
 # Optional conservative invocation scopes for the Kalshi Lambdas. These can also
-# be supplied in the manual invocation payload.
+# be supplied in the manual invocation payload. For the Markets schedule, leaving
+# all three Markets scope values null uses the packaged MLB event-query SQL file;
+# fill the Snowflake values below for that SQL-driven scope.
 kalshi_events_status        = "open"
 kalshi_events_event_ticker  = null
 kalshi_events_series_tickers = [
@@ -59,6 +65,8 @@ kalshi_series_ticker        = null
 kalshi_series_tags          = ["BaseBall"]
 kalshi_markets_market_ticker      = null
 kalshi_markets_event_ticker       = null
+# Optional override for the scheduled SQL scope. Null uses the packaged query:
+# src/market_data_platform/queries/kalshi/markets_mlb_events.sql
 kalshi_markets_event_query_file   = null
 kalshi_markets_paginate_trades    = false
 kalshi_market_trades_fetch_mode    = "incremental"

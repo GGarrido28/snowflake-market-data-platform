@@ -35,6 +35,9 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             self.assertRegex(tfvars_example, rf'{name}\s*=\s*"{default}"')
 
         for name in (
+            "kalshi_markets_schedule_expression",
+            "kalshi_markets_schedule_timezone",
+            "kalshi_markets_schedule_state",
             "kalshi_markets_market_ticker",
             "kalshi_markets_event_ticker",
             "kalshi_markets_event_query_file",
@@ -56,9 +59,12 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("Set at most one of kalshi_markets_market_ticker", variables)
         self.assertIn("kalshi_markets_event_query_file requires", variables)
         self.assertIn("kalshi_markets_reserved_concurrency must be null or at least 1", variables)
+        self.assertRegex(tfvars_example, r'kalshi_markets_schedule_state\s*=\s*"ENABLED"')
         self.assertIn("KALSHI_MARKET_TICKER", main)
         self.assertIn("KALSHI_EVENT_TICKER", main)
         self.assertIn("KALSHI_MARKETS_EVENT_QUERY_FILE", main)
+        self.assertIn("kalshi_markets_default_schedule_event_query_file", main)
+        self.assertIn("src/market_data_platform/queries/kalshi/markets_mlb_events.sql", main)
         self.assertIn("trade_fetch_mode", main)
         self.assertIn("SNOWFLAKE_ACCOUNT", main)
         self.assertIn("SNOWFLAKE_USER", main)
@@ -127,8 +133,13 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             'resource "aws_iam_role_policy_attachment" "kalshi_markets_snowflake_private_key_secret_read"',
             terraform,
         )
+        self.assertIn('resource "aws_iam_role" "kalshi_markets_scheduler"', terraform)
+        self.assertIn('data "aws_iam_policy_document" "kalshi_markets_scheduler_invoke"', terraform)
+        self.assertIn('resource "aws_iam_policy" "kalshi_markets_scheduler_invoke"', terraform)
+        self.assertIn('resource "aws_iam_role_policy_attachment" "kalshi_markets_scheduler_invoke"', terraform)
+        self.assertIn("aws_lambda_function.kalshi_markets.arn", terraform)
 
-    def test_markets_log_group_outputs_and_no_scheduler_are_present(self):
+    def test_markets_log_group_outputs_and_scheduler_are_present(self):
         cloudwatch = _read(CLOUDWATCH_PATH)
         outputs = _read(OUTPUTS_PATH)
         scheduler = _read(SCHEDULER_PATH)
@@ -140,7 +151,13 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn('output "kalshi_market_trades_landing_s3_uri"', outputs)
         self.assertIn('output "kalshi_market_trades_state_s3_uri"', outputs)
         self.assertIn('output "kalshi_markets_manual_invoke_payload"', outputs)
-        self.assertNotIn("kalshi_markets", scheduler)
+        self.assertIn('output "kalshi_markets_schedule_name"', outputs)
+        self.assertIn('resource "aws_scheduler_schedule" "kalshi_markets"', scheduler)
+        self.assertIn("var.kalshi_markets_schedule_state", scheduler)
+        self.assertIn("var.kalshi_markets_schedule_expression", scheduler)
+        self.assertIn("var.kalshi_markets_schedule_timezone", scheduler)
+        self.assertIn("aws_iam_role.kalshi_markets_scheduler.arn", scheduler)
+        self.assertIn("local.kalshi_markets_schedule_input", scheduler)
 
     def test_lambda_image_includes_snowflake_connector_for_event_query_file_scope(self):
         requirements = _read(LAMBDA_REQUIREMENTS_PATH)
