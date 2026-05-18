@@ -257,15 +257,74 @@ variable "kalshi_markets_event_ticker" {
 }
 
 variable "kalshi_markets_event_query_file" {
-  description = "Optional SQL file path whose event_ticker column scopes the markets Lambda."
+  description = "Optional SQL file path whose event_ticker column scopes the markets Lambda. Requires the Kalshi markets Snowflake account, user, and private-key secret variables."
   type        = string
   default     = null
+
+  validation {
+    condition = (
+      trimspace(coalesce(var.kalshi_markets_event_query_file, "")) == ""
+      || (
+        trimspace(coalesce(var.kalshi_markets_snowflake_account, "")) != ""
+        && trimspace(coalesce(var.kalshi_markets_snowflake_user, "")) != ""
+        && length(compact([
+          trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_arn, "")),
+          trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_name, "")),
+        ])) == 1
+      )
+    )
+    error_message = "kalshi_markets_event_query_file requires kalshi_markets_snowflake_account, kalshi_markets_snowflake_user, and exactly one Snowflake private-key secret ARN or name."
+  }
 }
 
 variable "kalshi_markets_paginate_trades" {
   description = "Whether the markets Lambda should paginate full trade history per market. Defaults false so manual invokes fetch only recent trades until watermarking is added."
   type        = bool
   default     = false
+}
+
+variable "kalshi_markets_snowflake_account" {
+  description = "Optional Snowflake account identifier used by the markets Lambda when kalshi_markets_event_query_file is configured."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_markets_snowflake_user" {
+  description = "Optional Snowflake user used by the markets Lambda when kalshi_markets_event_query_file is configured."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_markets_snowflake_warehouse" {
+  description = "Optional Snowflake warehouse used by the markets Lambda event-query-file scope."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_markets_snowflake_role" {
+  description = "Optional Snowflake role used by the markets Lambda event-query-file scope."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_markets_snowflake_private_key_secret_arn" {
+  description = "Optional Secrets Manager secret ARN containing the Snowflake private key PEM for the markets Lambda event-query-file scope. Use either ARN or name."
+  type        = string
+  default     = null
+
+  validation {
+    condition = length(compact([
+      trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_arn, "")),
+      trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_name, "")),
+    ])) <= 1
+    error_message = "Set only one of kalshi_markets_snowflake_private_key_secret_arn or kalshi_markets_snowflake_private_key_secret_name."
+  }
+}
+
+variable "kalshi_markets_snowflake_private_key_secret_name" {
+  description = "Optional Secrets Manager secret name containing the Snowflake private key PEM for the markets Lambda event-query-file scope. Use either ARN or name."
+  type        = string
+  default     = null
 }
 
 variable "lambda_timeout_seconds" {

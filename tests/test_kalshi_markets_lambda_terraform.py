@@ -38,14 +38,24 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             "kalshi_markets_event_ticker",
             "kalshi_markets_event_query_file",
             "kalshi_markets_paginate_trades",
+            "kalshi_markets_snowflake_account",
+            "kalshi_markets_snowflake_user",
+            "kalshi_markets_snowflake_warehouse",
+            "kalshi_markets_snowflake_role",
+            "kalshi_markets_snowflake_private_key_secret_arn",
+            "kalshi_markets_snowflake_private_key_secret_name",
         ):
             self.assertIn(f'variable "{name}"', variables)
             self.assertRegex(tfvars_example, rf"{name}\s*=")
 
         self.assertIn("Set at most one of kalshi_markets_market_ticker", variables)
+        self.assertIn("kalshi_markets_event_query_file requires", variables)
         self.assertIn("KALSHI_MARKET_TICKER", main)
         self.assertIn("KALSHI_EVENT_TICKER", main)
         self.assertIn("KALSHI_MARKETS_EVENT_QUERY_FILE", main)
+        self.assertIn("SNOWFLAKE_ACCOUNT", main)
+        self.assertIn("SNOWFLAKE_USER", main)
+        self.assertIn("SNOWFLAKE_PRIVATE_KEY_SECRET_ARN", main)
 
     def test_markets_lambda_uses_image_command_secret_env_and_prefixes(self):
         terraform = _read(LAMBDA_PATH)
@@ -60,6 +70,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("KALSHI_MARKETS_PAGINATE_TRADES", terraform)
         self.assertIn("local.kalshi_secret_environment", terraform)
         self.assertIn("local.kalshi_markets_scope_environment", terraform)
+        self.assertIn("local.kalshi_markets_snowflake_environment", terraform)
 
     def test_markets_iam_writes_only_market_landing_prefixes(self):
         terraform = _read(IAM_PATH)
@@ -78,6 +89,14 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             terraform,
         )
         self.assertIn('resource "aws_iam_role_policy_attachment" "kalshi_markets_kalshi_api_secret_read"', terraform)
+        self.assertIn(
+            'data "aws_iam_policy_document" "kalshi_markets_snowflake_private_key_secret_read"',
+            terraform,
+        )
+        self.assertIn(
+            'resource "aws_iam_role_policy_attachment" "kalshi_markets_snowflake_private_key_secret_read"',
+            terraform,
+        )
 
     def test_markets_log_group_outputs_and_no_scheduler_are_present(self):
         cloudwatch = _read(CLOUDWATCH_PATH)

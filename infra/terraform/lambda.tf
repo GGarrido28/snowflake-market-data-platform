@@ -115,6 +115,7 @@ resource "aws_lambda_function" "kalshi_markets" {
       },
       local.kalshi_secret_environment,
       local.kalshi_markets_scope_environment,
+      local.kalshi_markets_snowflake_environment,
     )
   }
 
@@ -123,5 +124,6 @@ resource "aws_lambda_function" "kalshi_markets" {
     aws_iam_role_policy_attachment.kalshi_markets_lambda_basic,
     aws_iam_role_policy_attachment.kalshi_markets_s3_write,
     aws_iam_role_policy_attachment.kalshi_markets_kalshi_api_secret_read,
+    aws_iam_role_policy_attachment.kalshi_markets_snowflake_private_key_secret_read,
   ]
 }
