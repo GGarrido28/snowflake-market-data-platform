@@ -29,12 +29,13 @@ class FakeMarketsClient:
             }
         ]
 
-    def get_market_details(self, markets, *, paginate_trades=True):
+    def get_market_details(self, markets, *, paginate_trades=True, trade_fetch_options_by_ticker=None):
         markets = list(markets)
         self.detail_calls.append(
             {
                 "markets": markets,
                 "paginate_trades": paginate_trades,
+                "trade_fetch_options_by_ticker": trade_fetch_options_by_ticker or {},
             }
         )
         return {
@@ -50,6 +51,7 @@ class FakeMarketsClient:
                     "ticker": markets[0]["ticker"],
                     "yes_price_dollars": "0.5100",
                     "count_fp": "10",
+                    "created_time": "2026-05-14T13:29:30Z",
                 }
             ],
         }
@@ -71,10 +73,43 @@ class FakeS3Writer:
         }
 
 
+class FakeNoTradeMarketsClient(FakeMarketsClient):
+    def get_market_details(self, markets, *, paginate_trades=True, trade_fetch_options_by_ticker=None):
+        result = super().get_market_details(
+            markets,
+            paginate_trades=paginate_trades,
+            trade_fetch_options_by_ticker=trade_fetch_options_by_ticker,
+        )
+        result["trades"] = []
+        return result
+
+
+class FakeStateStore:
+    def __init__(self, initial_state=None):
+        self.initial_state = initial_state
+        self.get_calls: list[dict] = []
+        self.put_calls: list[dict] = []
+
+    def get_json(self, *, bucket, key):
+        self.get_calls.append({"bucket": bucket, "key": key})
+        return self.initial_state
+
+    def put_json(self, *, bucket, key, payload):
+        self.put_calls.append({"bucket": bucket, "key": key, "payload": payload})
+        return {
+            "bucket": bucket,
+            "key": key,
+            "s3_uri": f"s3://{bucket}/{key}",
+            "bytes": 123,
+            "content_type": "application/json",
+        }
+
+
 class KalshiMarketsLandingPipelineTests(unittest.TestCase):
     def test_run_fetches_normalizes_and_writes_market_entities_to_s3(self):
         markets_client = FakeMarketsClient()
         s3_writer = FakeS3Writer()
+        state_store = FakeStateStore()
         now = dt.datetime(2026, 5, 14, 13, 30, 45, tzinfo=dt.timezone.utc)
 
         summary = markets_landing.run(
@@ -87,6 +122,7 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
             },
             markets_client=markets_client,
             s3_writer=s3_writer,
+            state_store=state_store,
             now=now,
         )
 
@@ -94,7 +130,17 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
             markets_client.target_market_calls,
             [{"market_ticker": "KXTEST", "event_ticker": None}],
         )
-        self.assertEqual(markets_client.detail_calls[0]["paginate_trades"], False)
+        self.assertEqual(markets_client.detail_calls[0]["paginate_trades"], True)
+        self.assertEqual(
+            markets_client.detail_calls[0]["trade_fetch_options_by_ticker"],
+            {
+                "KXTEST": {
+                    "all_pages": True,
+                    "min_ts": 1778679045,
+                    "max_ts": 1778765445,
+                }
+            },
+        )
         self.assertEqual(
             summary["row_counts"],
             {
@@ -124,10 +170,20 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
         self.assertEqual(orderbook_row["raw_payload"]["orderbook"], {"yes_dollars": [["0.5100", "15.00"]]})
         self.assertEqual(trade_row["trade_id"], "trade-1")
         self.assertEqual(trade_row["ingested_at"], "2026-05-14T13:30:45Z")
+        self.assertEqual(summary["trade_fetch_mode"], "incremental")
+        self.assertEqual(
+            state_store.put_calls[0]["payload"]["markets"]["KXTEST"]["last_seen_trade_time"],
+            "2026-05-14T13:29:30Z",
+        )
+        self.assertEqual(
+            state_store.put_calls[0]["payload"]["markets"]["KXTEST"]["checked_through_time"],
+            "2026-05-14T13:30:45Z",
+        )
 
     def test_run_uses_event_query_file_loader_and_fetches_each_event(self):
         markets_client = FakeMarketsClient()
         s3_writer = FakeS3Writer()
+        state_store = FakeStateStore()
 
         summary = markets_landing.run(
             {
@@ -136,6 +192,7 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
             },
             markets_client=markets_client,
             s3_writer=s3_writer,
+            state_store=state_store,
             event_ticker_loader=lambda query_file: ["EVT-1", "EVT-2"],
             now=dt.datetime(2026, 5, 14, tzinfo=dt.timezone.utc),
         )
@@ -153,6 +210,7 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
     def test_run_uses_env_bucket_prefixes_event_scope_and_trade_pagination(self):
         markets_client = FakeMarketsClient()
         s3_writer = FakeS3Writer()
+        state_store = FakeStateStore()
         env = {
             "KALSHI_MARKETS_S3_BUCKET": "snowflake-shared",
             "KALSHI_MARKETS_S3_PREFIX": "landing/kalshi/markets",
@@ -167,15 +225,114 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
                 {},
                 markets_client=markets_client,
                 s3_writer=s3_writer,
+                state_store=state_store,
                 now=dt.datetime(2026, 5, 14, tzinfo=dt.timezone.utc),
             )
 
         self.assertEqual(summary["event_ticker"], "EVT-ENV")
+        self.assertEqual(summary["trade_fetch_mode"], "full_history")
         self.assertEqual(markets_client.detail_calls[0]["paginate_trades"], True)
+        self.assertEqual(markets_client.detail_calls[0]["trade_fetch_options_by_ticker"], {"EVT-ENV-MKT": {"all_pages": True}})
         self.assertEqual(s3_writer.calls[0]["bucket"], "snowflake-shared")
         self.assertTrue(s3_writer.calls[0]["key"].startswith("landing/kalshi/markets/"))
         self.assertTrue(s3_writer.calls[1]["key"].startswith("landing/kalshi/orderbooks/"))
         self.assertTrue(s3_writer.calls[2]["key"].startswith("landing/kalshi/trades/"))
+        self.assertEqual(state_store.put_calls, [])
+
+    def test_incremental_run_uses_existing_watermark_with_overlap(self):
+        markets_client = FakeMarketsClient()
+        state_store = FakeStateStore(
+            {
+                "version": 1,
+                "markets": {
+                    "KXTEST": {
+                        "checked_through_ts": 1778761845,
+                        "checked_through_time": "2026-05-14T12:30:45Z",
+                    }
+                },
+            }
+        )
+
+        markets_landing.run(
+            {
+                "s3_bucket": "snowflake-landing",
+                "market_ticker": "KXTEST",
+                "trade_watermark_overlap_seconds": 30,
+            },
+            markets_client=markets_client,
+            s3_writer=FakeS3Writer(),
+            state_store=state_store,
+            now=dt.datetime(2026, 5, 14, 13, 30, 45, tzinfo=dt.timezone.utc),
+        )
+
+        self.assertEqual(
+            markets_client.detail_calls[0]["trade_fetch_options_by_ticker"]["KXTEST"],
+            {
+                "all_pages": True,
+                "min_ts": 1778761815,
+                "max_ts": 1778765445,
+            },
+        )
+
+    def test_incremental_empty_trade_run_still_advances_checked_through_state(self):
+        state_store = FakeStateStore()
+
+        markets_landing.run(
+            {
+                "s3_bucket": "snowflake-landing",
+                "market_ticker": "KXTEST",
+            },
+            markets_client=FakeNoTradeMarketsClient(),
+            s3_writer=FakeS3Writer(),
+            state_store=state_store,
+            now=dt.datetime(2026, 5, 14, 13, 30, 45, tzinfo=dt.timezone.utc),
+        )
+
+        state = state_store.put_calls[0]["payload"]
+        self.assertEqual(state["markets"]["KXTEST"]["checked_through_time"], "2026-05-14T13:30:45Z")
+        self.assertNotIn("last_seen_trade_time", state["markets"]["KXTEST"])
+
+    def test_backfill_mode_requires_explicit_start_and_does_not_update_watermark_by_default(self):
+        markets_client = FakeMarketsClient()
+        state_store = FakeStateStore()
+
+        summary = markets_landing.run(
+            {
+                "s3_bucket": "snowflake-landing",
+                "market_ticker": "KXTEST",
+                "trade_fetch_mode": "backfill",
+                "trade_backfill_start_time": "2026-05-13T00:00:00Z",
+                "trade_backfill_end_time": "2026-05-14T00:00:00Z",
+            },
+            markets_client=markets_client,
+            s3_writer=FakeS3Writer(),
+            state_store=state_store,
+            now=dt.datetime(2026, 5, 14, 13, 30, 45, tzinfo=dt.timezone.utc),
+        )
+
+        self.assertEqual(summary["trade_fetch_mode"], "backfill")
+        self.assertEqual(
+            markets_client.detail_calls[0]["trade_fetch_options_by_ticker"]["KXTEST"],
+            {
+                "all_pages": True,
+                "min_ts": 1778630400,
+                "max_ts": 1778716800,
+            },
+        )
+        self.assertEqual(state_store.put_calls, [])
+
+    def test_backfill_bounds_require_backfill_mode(self):
+        with self.assertRaisesRegex(ValueError, "Set trade_fetch_mode=backfill"):
+            markets_landing.run(
+                {
+                    "s3_bucket": "snowflake-landing",
+                    "market_ticker": "KXTEST",
+                    "trade_backfill_start_time": "2026-05-13T00:00:00Z",
+                },
+                markets_client=FakeMarketsClient(),
+                s3_writer=FakeS3Writer(),
+                state_store=FakeStateStore(),
+            )
 
     def test_run_rejects_multiple_market_scopes(self):
         with self.assertRaisesRegex(ValueError, "Set only one of market_ticker"):
@@ -187,6 +344,7 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
                 },
                 markets_client=FakeMarketsClient(),
                 s3_writer=FakeS3Writer(),
+                state_store=FakeStateStore(),
             )
 
     def test_normalizers_preserve_raw_payload_and_ingestion_timestamp(self):

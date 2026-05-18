@@ -16,7 +16,13 @@ The managed Lambdas write to:
 s3://snowflake-kalshi-project/raw/mlb/teams/
 s3://snowflake-kalshi-project/raw/kalshi/events/
 s3://snowflake-kalshi-project/raw/kalshi/series/
+s3://snowflake-kalshi-project/raw/kalshi/markets/
+s3://snowflake-kalshi-project/raw/kalshi/market_orderbooks/
+s3://snowflake-kalshi-project/raw/kalshi/market_trades/
 ```
+
+The Kalshi Markets Lambda also stores non-secret trade watermark state under
+`s3://snowflake-kalshi-project/state/kalshi/market_trades/watermarks.json`.
 
 ## Configure Terraform
 
@@ -125,6 +131,7 @@ Terraform creates:
 - ECR repository for the Lambda image.
 - IAM execution roles with CloudWatch logs permissions.
 - S3 write policies scoped to `snowflake-kalshi-project/raw/mlb/teams/*`, `snowflake-kalshi-project/raw/kalshi/events/*`, and `snowflake-kalshi-project/raw/kalshi/series/*`.
+- The Kalshi Markets Lambda can also read/write its non-secret market trade watermark object under `snowflake-kalshi-project/state/kalshi/market_trades/*`.
 - Optional Kalshi Secrets Manager read policy attached only to the Kalshi Lambda roles when `kalshi_api_secret_arn` or `kalshi_api_secret_name` is configured.
 - IAM read role scoped to the managed MLB and Kalshi S3 prefixes for Snowflake external stage access.
 - CloudWatch log groups.
@@ -190,6 +197,46 @@ Get-Content kalshi-series-response.json
 The responses include `row_count` and `s3_uri` values under the `raw/kalshi/events/` or `raw/kalshi/series/` prefixes.
 
 Snowflake RAW landing setup for these prefixes lives in [`docs/kalshi_events_series_snowpipe.md`](./kalshi_events_series_snowpipe.md).
+
+## Invoke Kalshi Markets
+
+Kalshi Markets requires a conservative scope: set exactly one market ticker,
+event ticker, or event-query SQL file. The default trade mode is incremental.
+For each scoped market, the Lambda reads
+`state/kalshi/market_trades/watermarks.json`, fetches trades using Kalshi
+`min_ts`/`max_ts` bounds, writes market trade JSONL, then advances the watermark
+after the S3 landing writes succeed. A market with no existing state is bounded
+to the last 24 hours by default.
+
+```powershell
+$MarketsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_markets_lambda_function_name
+
+aws lambda invoke `
+  --function-name $MarketsFunctionName `
+  --payload '{"market_ticker":"KXTEST","trade_fetch_mode":"incremental"}' `
+  --cli-binary-format raw-in-base64-out `
+  --region $Region `
+  kalshi-markets-response.json
+
+Get-Content kalshi-markets-response.json
+```
+
+Manual backfills are opt-in and should include explicit time bounds. Backfill
+mode does not update the scheduled watermark unless `update_trade_watermark` is
+set to `true` in the payload:
+
+```powershell
+aws lambda invoke `
+  --function-name $MarketsFunctionName `
+  --payload '{"market_ticker":"KXTEST","trade_fetch_mode":"backfill","trade_backfill_start_time":"2026-05-13T00:00:00Z","trade_backfill_end_time":"2026-05-14T00:00:00Z"}' `
+  --cli-binary-format raw-in-base64-out `
+  --region $Region `
+  kalshi-markets-response.json
+```
+
+To reset scheduled incremental state, delete or replace only the watermark
+object at `state/kalshi/market_trades/watermarks.json`. Do not delete landed
+JSONL files under `raw/kalshi/market_trades/`; those files are Snowpipe inputs.
 
 ## Scheduled Kalshi Payloads
 

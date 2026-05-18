@@ -55,6 +55,30 @@ class MarketEndpointTests(unittest.TestCase):
         )
 
     @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
+    def test_get_market_trades_forwards_incremental_time_bounds(self, _mock_base_init):
+        expected_rows = [{"trade_id": "trade-1", "ticker": "KXTEST"}]
+
+        with patch.object(Markets, "get_paginated_results", return_value=expected_rows) as mock_paginated:
+            markets = Markets()
+
+            result = markets.get_market_trades(
+                "KXTEST",
+                all_pages=True,
+                min_ts=1778679045,
+                max_ts=1778765445,
+            )
+
+        self.assertEqual(result, expected_rows)
+        mock_paginated.assert_called_once_with(
+            "GET",
+            "/markets/trades",
+            limit=1000,
+            ticker="KXTEST",
+            min_ts=1778679045,
+            max_ts=1778765445,
+        )
+
+    @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
     def test_get_market_endpoints_uses_market_ticker_for_orderbooks_and_trades(self, _mock_base_init):
         markets = Markets()
         markets.markets = []
@@ -77,6 +101,34 @@ class MarketEndpointTests(unittest.TestCase):
             [{"market_ticker": "KXTEST", "orderbook": sample_orderbook}],
         )
         self.assertEqual(result["trades"], sample_trades)
+
+    @patch("market_data_platform.sources.kalshi.markets.markets.KalshiBase.__init__", return_value=None)
+    def test_get_market_details_applies_per_market_trade_fetch_options(self, _mock_base_init):
+        markets = Markets()
+        markets.markets = []
+        markets.orderbook = []
+        markets.trades = []
+
+        with patch.object(Markets, "get_market_orderbook", return_value={"yes_dollars": []}):
+            with patch.object(Markets, "get_market_trades", return_value=[]) as mock_trades:
+                markets.get_market_details(
+                    [{"ticker": "KXTEST"}],
+                    paginate_trades=False,
+                    trade_fetch_options_by_ticker={
+                        "KXTEST": {
+                            "all_pages": True,
+                            "min_ts": 1778679045,
+                            "max_ts": 1778765445,
+                        }
+                    },
+                )
+
+        mock_trades.assert_called_once_with(
+            "KXTEST",
+            all_pages=True,
+            min_ts=1778679045,
+            max_ts=1778765445,
+        )
 
 
 class MarketsScraperTests(unittest.TestCase):
