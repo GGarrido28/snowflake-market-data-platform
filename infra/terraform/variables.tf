@@ -323,13 +323,13 @@ variable "kalshi_market_trades_watermark_overlap_seconds" {
 }
 
 variable "kalshi_markets_reserved_concurrency" {
-  description = "Reserved concurrency for the Kalshi markets Lambda. Defaults to 1 to serialize market trade watermark updates."
+  description = "Optional reserved concurrency for the Kalshi markets Lambda. Leave null to avoid consuming account-level reserved concurrency; set to 1 or higher only when the AWS account has enough unreserved concurrency headroom."
   type        = number
-  default     = 1
+  default     = null
 
   validation {
-    condition     = var.kalshi_markets_reserved_concurrency >= 1
-    error_message = "kalshi_markets_reserved_concurrency must be at least 1."
+    condition     = var.kalshi_markets_reserved_concurrency == null || var.kalshi_markets_reserved_concurrency >= 1
+    error_message = "kalshi_markets_reserved_concurrency must be null or at least 1."
   }
 }
 

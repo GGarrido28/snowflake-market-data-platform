@@ -206,9 +206,10 @@ For each scoped market, the Lambda reads its own state object such as
 `state/kalshi/market_trades/market_ticker=KXTEST/watermark.json`, fetches trades
 using Kalshi `min_ts`/`max_ts` bounds, writes market trade JSONL, then advances
 the watermark after the S3 landing writes succeed. A market with no existing
-state is bounded to the last 24 hours by default. The markets Lambda defaults to
-reserved concurrency 1 so overlapping invocations do not race on watermark
-updates.
+state is bounded to the last 24 hours by default. Reserved concurrency is not
+set by default because some AWS accounts do not have enough unreserved
+concurrency headroom; set `kalshi_markets_reserved_concurrency = 1` only when
+the account can support a dedicated reservation.
 
 ```powershell
 $MarketsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_markets_lambda_function_name
