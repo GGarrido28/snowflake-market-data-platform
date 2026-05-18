@@ -41,9 +41,11 @@ terraform -chdir=infra/terraform init
 The MLB teams schedule is intentionally created in a disabled state because team metadata is low-change reference data. Override `mlb_teams_schedule_expression`, `mlb_teams_schedule_timezone`, or set `mlb_teams_schedule_state = "ENABLED"` in `terraform.tfvars` if you need recurring refreshes before applying.
 
 Kalshi Events and Series schedules default to hourly and enabled. Kalshi
-Markets defaults to every 30 minutes and enabled; when no exact market/event
-scope is set, the scheduled payload uses the packaged MLB event-query SQL file
-at `src/market_data_platform/queries/kalshi/markets_mlb_events.sql`.
+Markets defaults to every 30 minutes and enabled, offset at 15 and 45 minutes
+past each hour so it does not start at the same minute as Events and Series.
+When no exact market/event scope is set, the scheduled payload uses the packaged
+MLB event-query SQL file at
+`src/market_data_platform/queries/kalshi/markets_mlb_events.sql`.
 
 ```hcl
 kalshi_events_schedule_expression = "cron(0 * * * ? *)"
@@ -52,12 +54,12 @@ kalshi_events_schedule_state      = "ENABLED"
 kalshi_series_schedule_expression = "cron(0 * * * ? *)"
 kalshi_series_schedule_timezone   = "America/Chicago"
 kalshi_series_schedule_state      = "ENABLED"
-kalshi_markets_schedule_expression = "cron(0/30 * * * ? *)"
+kalshi_markets_schedule_expression = "cron(15,45 * * * ? *)"
 kalshi_markets_schedule_timezone   = "America/Chicago"
 kalshi_markets_schedule_state      = "ENABLED"
 ```
 
-Set any Kalshi schedule state to `DISABLED` in `terraform.tfvars` to pause scheduled ingestion without removing the schedule. Keep Events and Series hourly or slower, and keep Markets at 30 minutes or slower unless you have validated the cost/freshness tradeoff. Configure Kalshi authentication with `kalshi_api_secret_arn` or `kalshi_api_secret_name`; Terraform passes the matching `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME` environment variable and grants the Lambda roles read access to that secret reference. The SQL-driven Markets schedule also needs the `kalshi_markets_snowflake_*` settings so the Lambda can run the query that selects event tickers.
+Set any Kalshi schedule state to `DISABLED` in `terraform.tfvars` to pause scheduled ingestion without removing the schedule. Keep Events and Series hourly or slower, and keep Markets at 30 minutes or slower unless you have validated the cost/freshness tradeoff. Keep Markets offset from Events and Series to avoid stacking Kalshi requests on the hour. Configure Kalshi authentication with `kalshi_api_secret_arn` or `kalshi_api_secret_name`; Terraform passes the matching `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME` environment variable and grants the Lambda roles read access to that secret reference. The SQL-driven Markets schedule also needs the `kalshi_markets_snowflake_*` settings so the Lambda can run the query that selects event tickers.
 
 ## Deploy With Script
 
@@ -144,7 +146,7 @@ Terraform creates:
 - Lambda functions using the pushed container image.
 - EventBridge Scheduler schedule for the MLB Teams Lambda, disabled by default but visible in AWS and Terraform.
 - Hourly EventBridge Scheduler schedules for the Kalshi Events and Series Lambdas, enabled by default and scoped to conservative MLB/BaseBall payloads.
-- A 30-minute EventBridge Scheduler schedule for the Kalshi Markets Lambda, enabled by default and scoped to the configured Markets target or the packaged MLB event-query SQL file.
+- A 30-minute EventBridge Scheduler schedule for the Kalshi Markets Lambda, enabled by default, offset at 15 and 45 minutes past each hour, and scoped to the configured Markets target or the packaged MLB event-query SQL file.
 
 Snowpipe setup instructions live in [`docs/mlb_teams_snowpipe.md`](./mlb_teams_snowpipe.md).
 

@@ -180,9 +180,9 @@ variable "kalshi_series_schedule_state" {
 }
 
 variable "kalshi_markets_schedule_expression" {
-  description = "Half-hour EventBridge Scheduler expression for the Kalshi markets Lambda."
+  description = "Half-hour EventBridge Scheduler expression for the Kalshi markets Lambda, offset from the hourly events and series schedules."
   type        = string
-  default     = "cron(0/30 * * * ? *)"
+  default     = "cron(15,45 * * * ? *)"
 }
 
 variable "kalshi_markets_schedule_timezone" {

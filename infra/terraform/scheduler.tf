@@ -82,7 +82,7 @@ resource "aws_scheduler_schedule" "kalshi_series" {
 
 resource "aws_scheduler_schedule" "kalshi_markets" {
   name        = "${local.kalshi_markets_name}-schedule"
-  description = "Runs ${local.kalshi_markets_name} every 30 minutes with a bounded markets scope."
+  description = "Runs ${local.kalshi_markets_name} at 15 and 45 minutes past each hour with a bounded markets scope."
   state       = var.kalshi_markets_schedule_state
 
   schedule_expression          = var.kalshi_markets_schedule_expression

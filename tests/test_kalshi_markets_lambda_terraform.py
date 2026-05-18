@@ -60,6 +60,8 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("kalshi_markets_event_query_file requires", variables)
         self.assertIn("kalshi_markets_reserved_concurrency must be null or at least 1", variables)
         self.assertRegex(tfvars_example, r'kalshi_markets_schedule_state\s*=\s*"ENABLED"')
+        self.assertIn('default     = "cron(15,45 * * * ? *)"', variables)
+        self.assertRegex(tfvars_example, r'kalshi_markets_schedule_expression\s*=\s*"cron\(15,45 \* \* \* \? \*\)"')
         self.assertIn("KALSHI_MARKET_TICKER", main)
         self.assertIn("KALSHI_EVENT_TICKER", main)
         self.assertIn("KALSHI_MARKETS_EVENT_QUERY_FILE", main)

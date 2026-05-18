@@ -32,7 +32,7 @@ kalshi_events_schedule_state      = "ENABLED"
 kalshi_series_schedule_expression = "cron(0 * * * ? *)"
 kalshi_series_schedule_timezone   = "America/Chicago"
 kalshi_series_schedule_state      = "ENABLED"
-kalshi_markets_schedule_expression = "cron(0/30 * * * ? *)"
+kalshi_markets_schedule_expression = "cron(15,45 * * * ? *)"
 kalshi_markets_schedule_timezone   = "America/Chicago"
 # Runs the SQL-driven Markets scope when no exact market or event binding is set.
 kalshi_markets_schedule_state      = "ENABLED"
