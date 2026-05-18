@@ -55,6 +55,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
 
         self.assertIn("Set at most one of kalshi_markets_market_ticker", variables)
         self.assertIn("kalshi_markets_event_query_file requires", variables)
+        self.assertIn("kalshi_markets_reserved_concurrency must be null or at least 1", variables)
         self.assertIn("KALSHI_MARKET_TICKER", main)
         self.assertIn("KALSHI_EVENT_TICKER", main)
         self.assertIn("KALSHI_MARKETS_EVENT_QUERY_FILE", main)
