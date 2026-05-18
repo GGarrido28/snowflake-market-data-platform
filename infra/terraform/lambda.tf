@@ -34,7 +34,7 @@ resource "aws_lambda_function" "kalshi_events" {
   timeout       = var.lambda_timeout_seconds
 
   image_config {
-    command = ["aws.lambdas.kalshi_events.handler.lambda_handler"]
+    command = ["market_data_platform.lambda_handlers.kalshi_events.lambda_handler"]
   }
 
   environment {
@@ -68,7 +68,7 @@ resource "aws_lambda_function" "kalshi_series" {
   timeout       = var.lambda_timeout_seconds
 
   image_config {
-    command = ["aws.lambdas.kalshi_series.handler.lambda_handler"]
+    command = ["market_data_platform.lambda_handlers.kalshi_series.lambda_handler"]
   }
 
   environment {

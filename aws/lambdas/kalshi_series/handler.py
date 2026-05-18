@@ -1,5 +1,1 @@
-from market_data_platform.pipelines.kalshi.series_landing import run
-
-
-def lambda_handler(event, context):
-    return run(event or {})
+from market_data_platform.lambda_handlers.kalshi_series import lambda_handler, run
