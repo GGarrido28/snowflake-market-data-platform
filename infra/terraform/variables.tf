@@ -66,14 +66,14 @@ variable "mlb_teams_pipe_notification_channel" {
   validation {
     condition = (
       length(compact([
-        trimspace(coalesce(var.mlb_teams_pipe_notification_channel, "")),
-        trimspace(coalesce(var.kalshi_events_pipe_notification_channel, "")),
-        trimspace(coalesce(var.kalshi_series_pipe_notification_channel, "")),
+        trimspace(var.mlb_teams_pipe_notification_channel != null ? var.mlb_teams_pipe_notification_channel : ""),
+        trimspace(var.kalshi_events_pipe_notification_channel != null ? var.kalshi_events_pipe_notification_channel : ""),
+        trimspace(var.kalshi_series_pipe_notification_channel != null ? var.kalshi_series_pipe_notification_channel : ""),
       ])) == 0
       || length(compact([
-        trimspace(coalesce(var.mlb_teams_pipe_notification_channel, "")),
-        trimspace(coalesce(var.kalshi_events_pipe_notification_channel, "")),
-        trimspace(coalesce(var.kalshi_series_pipe_notification_channel, "")),
+        trimspace(var.mlb_teams_pipe_notification_channel != null ? var.mlb_teams_pipe_notification_channel : ""),
+        trimspace(var.kalshi_events_pipe_notification_channel != null ? var.kalshi_events_pipe_notification_channel : ""),
+        trimspace(var.kalshi_series_pipe_notification_channel != null ? var.kalshi_series_pipe_notification_channel : ""),
       ])) == 3
     )
     error_message = "Set all three Snowpipe notification channel ARNs together, or leave all three null. Terraform owns the bucket's full notification configuration."
@@ -242,9 +242,9 @@ variable "kalshi_markets_market_ticker" {
 
   validation {
     condition = length(compact([
-      trimspace(coalesce(var.kalshi_markets_market_ticker, "")),
-      trimspace(coalesce(var.kalshi_markets_event_ticker, "")),
-      trimspace(coalesce(var.kalshi_markets_event_query_file, "")),
+      trimspace(var.kalshi_markets_market_ticker != null ? var.kalshi_markets_market_ticker : ""),
+      trimspace(var.kalshi_markets_event_ticker != null ? var.kalshi_markets_event_ticker : ""),
+      trimspace(var.kalshi_markets_event_query_file != null ? var.kalshi_markets_event_query_file : ""),
     ])) <= 1
     error_message = "Set at most one of kalshi_markets_market_ticker, kalshi_markets_event_ticker, or kalshi_markets_event_query_file."
   }
@@ -263,13 +263,13 @@ variable "kalshi_markets_event_query_file" {
 
   validation {
     condition = (
-      trimspace(coalesce(var.kalshi_markets_event_query_file, "")) == ""
+      trimspace(var.kalshi_markets_event_query_file != null ? var.kalshi_markets_event_query_file : "") == ""
       || (
-        trimspace(coalesce(var.kalshi_markets_snowflake_account, "")) != ""
-        && trimspace(coalesce(var.kalshi_markets_snowflake_user, "")) != ""
+        trimspace(var.kalshi_markets_snowflake_account != null ? var.kalshi_markets_snowflake_account : "") != ""
+        && trimspace(var.kalshi_markets_snowflake_user != null ? var.kalshi_markets_snowflake_user : "") != ""
         && length(compact([
-          trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_arn, "")),
-          trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_name, "")),
+          trimspace(var.kalshi_markets_snowflake_private_key_secret_arn != null ? var.kalshi_markets_snowflake_private_key_secret_arn : ""),
+          trimspace(var.kalshi_markets_snowflake_private_key_secret_name != null ? var.kalshi_markets_snowflake_private_key_secret_name : ""),
         ])) == 1
       )
     )
@@ -314,8 +314,8 @@ variable "kalshi_markets_snowflake_private_key_secret_arn" {
 
   validation {
     condition = length(compact([
-      trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_arn, "")),
-      trimspace(coalesce(var.kalshi_markets_snowflake_private_key_secret_name, "")),
+      trimspace(var.kalshi_markets_snowflake_private_key_secret_arn != null ? var.kalshi_markets_snowflake_private_key_secret_arn : ""),
+      trimspace(var.kalshi_markets_snowflake_private_key_secret_name != null ? var.kalshi_markets_snowflake_private_key_secret_name : ""),
     ])) <= 1
     error_message = "Set only one of kalshi_markets_snowflake_private_key_secret_arn or kalshi_markets_snowflake_private_key_secret_name."
   }
