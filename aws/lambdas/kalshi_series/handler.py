@@ -1,4 +1,4 @@
-from market_data_platform.pipelines.kalshi.series_landing import run
+from market_data_platform.lambda_handlers.kalshi_series import run
 
 
 def lambda_handler(event, context):
