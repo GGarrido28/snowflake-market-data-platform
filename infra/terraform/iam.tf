@@ -162,6 +162,25 @@ data "aws_iam_policy_document" "kalshi_markets_s3_write" {
       "${data.aws_s3_bucket.landing.arn}/${local.kalshi_market_trades_state_prefix}/*",
     ]
   }
+
+  statement {
+    sid    = "ListKalshiMarketTradeStatePrefix"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      data.aws_s3_bucket.landing.arn,
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.kalshi_market_trades_state_prefix}/*"]
+    }
+  }
 }
 
 resource "aws_iam_policy" "kalshi_markets_s3_write" {

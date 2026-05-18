@@ -322,6 +322,17 @@ variable "kalshi_market_trades_watermark_overlap_seconds" {
   }
 }
 
+variable "kalshi_markets_reserved_concurrency" {
+  description = "Reserved concurrency for the Kalshi markets Lambda. Defaults to 1 to serialize market trade watermark updates."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.kalshi_markets_reserved_concurrency >= 1
+    error_message = "kalshi_markets_reserved_concurrency must be at least 1."
+  }
+}
+
 variable "kalshi_markets_snowflake_account" {
   description = "Optional Snowflake account identifier used by the markets Lambda when kalshi_markets_event_query_file is configured."
   type        = string

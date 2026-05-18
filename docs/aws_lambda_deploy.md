@@ -21,8 +21,8 @@ s3://snowflake-kalshi-project/raw/kalshi/market_orderbooks/
 s3://snowflake-kalshi-project/raw/kalshi/market_trades/
 ```
 
-The Kalshi Markets Lambda also stores non-secret trade watermark state under
-`s3://snowflake-kalshi-project/state/kalshi/market_trades/watermarks.json`.
+The Kalshi Markets Lambda also stores non-secret per-market trade watermark
+state under `s3://snowflake-kalshi-project/state/kalshi/market_trades/`.
 
 ## Configure Terraform
 
@@ -202,11 +202,13 @@ Snowflake RAW landing setup for these prefixes lives in [`docs/kalshi_events_ser
 
 Kalshi Markets requires a conservative scope: set exactly one market ticker,
 event ticker, or event-query SQL file. The default trade mode is incremental.
-For each scoped market, the Lambda reads
-`state/kalshi/market_trades/watermarks.json`, fetches trades using Kalshi
-`min_ts`/`max_ts` bounds, writes market trade JSONL, then advances the watermark
-after the S3 landing writes succeed. A market with no existing state is bounded
-to the last 24 hours by default.
+For each scoped market, the Lambda reads its own state object such as
+`state/kalshi/market_trades/market_ticker=KXTEST/watermark.json`, fetches trades
+using Kalshi `min_ts`/`max_ts` bounds, writes market trade JSONL, then advances
+the watermark after the S3 landing writes succeed. A market with no existing
+state is bounded to the last 24 hours by default. The markets Lambda defaults to
+reserved concurrency 1 so overlapping invocations do not race on watermark
+updates.
 
 ```powershell
 $MarketsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_markets_lambda_function_name
@@ -234,9 +236,10 @@ aws lambda invoke `
   kalshi-markets-response.json
 ```
 
-To reset scheduled incremental state, delete or replace only the watermark
-object at `state/kalshi/market_trades/watermarks.json`. Do not delete landed
-JSONL files under `raw/kalshi/market_trades/`; those files are Snowpipe inputs.
+To reset scheduled incremental state, delete or replace only the relevant
+per-market watermark object under `state/kalshi/market_trades/`. Do not delete
+landed JSONL files under `raw/kalshi/market_trades/`; those files are Snowpipe
+inputs.
 
 ## Scheduled Kalshi Payloads
 

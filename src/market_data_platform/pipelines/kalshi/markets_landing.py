@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import quote
 
 from market_data_platform.pipelines.kalshi.s3_landing import (
     build_s3_key,
@@ -36,7 +37,6 @@ class TradeFetchConfig:
     paginate_trades: bool
     state_bucket: str
     state_prefix: str
-    state_key: str
     first_run_lookback_hours: float
     watermark_overlap_seconds: int
     backfill_min_ts: int | None
@@ -59,6 +59,13 @@ def _configured_string(
     if value in (None, ""):
         return None
     return str(value).strip() or None
+
+
+def _event_value_or_env(event: dict[str, Any], *keys: str, env_var: str) -> Any | None:
+    value = event_value(event, *keys)
+    if value in (None, ""):
+        value = os.getenv(env_var)
+    return value
 
 
 def _resolve_entity_prefix(
@@ -220,26 +227,44 @@ def _resolve_trade_fetch_config(
         default=DEFAULT_MARKET_TRADES_STATE_PREFIX,
     )
     first_run_lookback_hours = _coerce_float(
-        event_value(event, "trade_first_run_lookback_hours", "market_trades_first_run_lookback_hours")
-        or os.getenv("KALSHI_MARKET_TRADES_FIRST_RUN_LOOKBACK_HOURS"),
+        _event_value_or_env(
+            event,
+            "trade_first_run_lookback_hours",
+            "market_trades_first_run_lookback_hours",
+            env_var="KALSHI_MARKET_TRADES_FIRST_RUN_LOOKBACK_HOURS",
+        ),
         name="trade_first_run_lookback_hours",
         default=DEFAULT_TRADE_FIRST_RUN_LOOKBACK_HOURS,
     )
     watermark_overlap_seconds = _coerce_nonnegative_int(
-        event_value(event, "trade_watermark_overlap_seconds", "market_trades_watermark_overlap_seconds")
-        or os.getenv("KALSHI_MARKET_TRADES_WATERMARK_OVERLAP_SECONDS"),
+        _event_value_or_env(
+            event,
+            "trade_watermark_overlap_seconds",
+            "market_trades_watermark_overlap_seconds",
+            env_var="KALSHI_MARKET_TRADES_WATERMARK_OVERLAP_SECONDS",
+        ),
         name="trade_watermark_overlap_seconds",
         default=DEFAULT_TRADE_WATERMARK_OVERLAP_SECONDS,
     )
 
     backfill_min_ts = _coerce_epoch_seconds(
-        event_value(event, "trade_backfill_start_ts", "trade_backfill_start_time", "market_trades_min_ts")
-        or os.getenv("KALSHI_MARKET_TRADES_BACKFILL_START_TS"),
+        _event_value_or_env(
+            event,
+            "trade_backfill_start_ts",
+            "trade_backfill_start_time",
+            "market_trades_min_ts",
+            env_var="KALSHI_MARKET_TRADES_BACKFILL_START_TS",
+        ),
         name="trade_backfill_start_ts",
     )
     backfill_max_ts = _coerce_epoch_seconds(
-        event_value(event, "trade_backfill_end_ts", "trade_backfill_end_time", "market_trades_max_ts")
-        or os.getenv("KALSHI_MARKET_TRADES_BACKFILL_END_TS"),
+        _event_value_or_env(
+            event,
+            "trade_backfill_end_ts",
+            "trade_backfill_end_time",
+            "market_trades_max_ts",
+            env_var="KALSHI_MARKET_TRADES_BACKFILL_END_TS",
+        ),
         name="trade_backfill_end_ts",
     )
     if mode == "backfill":
@@ -262,7 +287,6 @@ def _resolve_trade_fetch_config(
         paginate_trades=mode in {"incremental", "backfill", "full_history"},
         state_bucket=state_bucket,
         state_prefix=state_prefix,
-        state_key=f"{state_prefix}/watermarks.json",
         first_run_lookback_hours=first_run_lookback_hours,
         watermark_overlap_seconds=watermark_overlap_seconds,
         backfill_min_ts=backfill_min_ts,
@@ -271,11 +295,9 @@ def _resolve_trade_fetch_config(
     )
 
 
-def _empty_trade_watermark_state() -> dict[str, Any]:
-    return {
-        "version": 1,
-        "markets": {},
-    }
+def _trade_watermark_state_key(config: TradeFetchConfig, ticker: str) -> str:
+    encoded_ticker = quote(ticker, safe="")
+    return f"{config.state_prefix}/market_ticker={encoded_ticker}/watermark.json"
 
 
 def _load_trade_watermark_state(
@@ -286,13 +308,27 @@ def _load_trade_watermark_state(
 ) -> dict[str, Any]:
     payload = state_store.get_json(bucket=bucket, key=key)
     if not isinstance(payload, dict):
-        return _empty_trade_watermark_state()
-    markets = payload.get("markets")
-    if not isinstance(markets, dict):
-        payload = dict(payload)
-        payload["markets"] = {}
+        return {}
     payload["version"] = payload.get("version") or 1
     return payload
+
+
+def _load_trade_watermark_states(
+    state_store: S3JsonStore,
+    *,
+    config: TradeFetchConfig,
+    tickers: list[str],
+) -> dict[str, dict[str, Any]]:
+    if config.mode != "incremental":
+        return {}
+    return {
+        ticker: _load_trade_watermark_state(
+            state_store,
+            bucket=config.state_bucket,
+            key=_trade_watermark_state_key(config, ticker),
+        )
+        for ticker in tickers
+    }
 
 
 def _market_tickers(markets: list[dict[str, Any]]) -> list[str]:
@@ -316,7 +352,7 @@ def _build_trade_fetch_options(
     *,
     tickers: list[str],
     config: TradeFetchConfig,
-    state: dict[str, Any],
+    state_by_ticker: dict[str, dict[str, Any]],
     run_started_at: dt.datetime,
 ) -> dict[str, dict[str, int | bool]]:
     if config.mode == "recent":
@@ -335,10 +371,9 @@ def _build_trade_fetch_options(
 
     run_ts = int(run_started_at.astimezone(dt.timezone.utc).timestamp())
     first_run_min_ts = max(0, run_ts - int(config.first_run_lookback_hours * 3600))
-    state_markets = state.get("markets", {})
     options: dict[str, dict[str, int | bool]] = {}
     for ticker in tickers:
-        entry = state_markets.get(ticker, {})
+        entry = state_by_ticker.get(ticker, {})
         checked_through_ts = _entry_checked_through_ts(entry) if isinstance(entry, dict) else None
         min_ts = (
             max(0, checked_through_ts - config.watermark_overlap_seconds)
@@ -375,35 +410,29 @@ def _latest_trade_watermarks(trades: list[dict[str, Any]]) -> dict[str, dict[str
 def _merge_trade_watermark_state(
     *,
     state: dict[str, Any],
-    tickers: list[str],
-    trades: list[dict[str, Any]],
+    ticker: str,
+    latest: dict[str, Any] | None,
     checked_through_ts: int,
     ingested_at: str,
 ) -> dict[str, Any]:
-    merged = dict(state)
-    state_markets = dict(merged.get("markets", {}))
-    latest_by_ticker = _latest_trade_watermarks(trades)
-
-    for ticker in tickers:
-        existing = state_markets.get(ticker, {})
-        entry = dict(existing) if isinstance(existing, dict) else {}
-        latest = latest_by_ticker.get(ticker)
-        if latest:
-            existing_last_seen = _coerce_epoch_seconds(entry.get("last_seen_trade_ts"), name="last_seen_trade_ts")
-            if existing_last_seen is None or latest["last_seen_trade_ts"] >= existing_last_seen:
-                entry.update(latest)
-        entry.update(
-            {
-                "checked_through_ts": checked_through_ts,
-                "checked_through_time": _format_epoch_seconds(checked_through_ts),
-                "updated_at": ingested_at,
-            }
-        )
-        state_markets[ticker] = entry
-
-    merged["version"] = 1
-    merged["updated_at"] = ingested_at
-    merged["markets"] = state_markets
+    merged = dict(state) if isinstance(state, dict) else {}
+    existing_last_seen = _coerce_epoch_seconds(merged.get("last_seen_trade_ts"), name="last_seen_trade_ts")
+    existing_checked_through = _entry_checked_through_ts(merged)
+    if latest and (existing_last_seen is None or latest["last_seen_trade_ts"] >= existing_last_seen):
+        merged.update(latest)
+    checked_through_ts = max(
+        checked_through_ts,
+        existing_checked_through if existing_checked_through is not None else checked_through_ts,
+    )
+    merged.update(
+        {
+            "version": 1,
+            "market_ticker": ticker,
+            "checked_through_ts": checked_through_ts,
+            "checked_through_time": _format_epoch_seconds(checked_through_ts),
+            "updated_at": ingested_at,
+        }
+    )
     return merged
 
 
@@ -573,15 +602,15 @@ def run(
         trade_fetch_config.mode,
     )
     tickers = _market_tickers(market_rows)
-    trade_watermark_state = _load_trade_watermark_state(
+    trade_watermark_states = _load_trade_watermark_states(
         state_store,
-        bucket=trade_fetch_config.state_bucket,
-        key=trade_fetch_config.state_key,
+        config=trade_fetch_config,
+        tickers=tickers,
     )
     trade_fetch_options_by_ticker = _build_trade_fetch_options(
         tickers=tickers,
         config=trade_fetch_config,
-        state=trade_watermark_state,
+        state_by_ticker=trade_watermark_states,
         run_started_at=run_started_at,
     )
     detail_data = markets_client.get_market_details(
@@ -620,25 +649,33 @@ def run(
         ),
     }
 
-    watermark_write: dict[str, Any] | None = None
+    latest_trade_watermarks = _latest_trade_watermarks(detail_data["trades"])
+    watermark_writes: dict[str, Any] = {}
     if trade_fetch_config.update_watermark and tickers:
         checked_through_ts = (
             trade_fetch_config.backfill_max_ts
             if trade_fetch_config.mode == "backfill" and trade_fetch_config.backfill_max_ts is not None
             else int(run_started_at.astimezone(dt.timezone.utc).timestamp())
         )
-        updated_state = _merge_trade_watermark_state(
-            state=trade_watermark_state,
-            tickers=tickers,
-            trades=detail_data["trades"],
-            checked_through_ts=checked_through_ts,
-            ingested_at=ingested_at,
-        )
-        watermark_write = state_store.put_json(
-            bucket=trade_fetch_config.state_bucket,
-            key=trade_fetch_config.state_key,
-            payload=updated_state,
-        )
+        for ticker in tickers:
+            state_key = _trade_watermark_state_key(trade_fetch_config, ticker)
+            current_state = _load_trade_watermark_state(
+                state_store,
+                bucket=trade_fetch_config.state_bucket,
+                key=state_key,
+            )
+            updated_state = _merge_trade_watermark_state(
+                state=current_state,
+                ticker=ticker,
+                latest=latest_trade_watermarks.get(ticker),
+                checked_through_ts=checked_through_ts,
+                ingested_at=ingested_at,
+            )
+            watermark_writes[ticker] = state_store.put_json(
+                bucket=trade_fetch_config.state_bucket,
+                key=state_key,
+                payload=updated_state,
+            )
 
     return {
         "source": "kalshi",
@@ -652,9 +689,9 @@ def run(
         "trade_fetch_window_count": len(trade_fetch_options_by_ticker),
         "trade_watermark": {
             "state_bucket": trade_fetch_config.state_bucket,
-            "state_key": trade_fetch_config.state_key,
-            "updated": watermark_write is not None,
-            "write": watermark_write,
+            "state_prefix": trade_fetch_config.state_prefix,
+            "updated": bool(watermark_writes),
+            "writes": watermark_writes,
         },
         "row_counts": {
             entity: result["row_count"]

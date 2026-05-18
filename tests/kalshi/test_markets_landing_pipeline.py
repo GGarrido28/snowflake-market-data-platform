@@ -172,11 +172,15 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
         self.assertEqual(trade_row["ingested_at"], "2026-05-14T13:30:45Z")
         self.assertEqual(summary["trade_fetch_mode"], "incremental")
         self.assertEqual(
-            state_store.put_calls[0]["payload"]["markets"]["KXTEST"]["last_seen_trade_time"],
+            state_store.put_calls[0]["key"],
+            "state/kalshi/market_trades/market_ticker=KXTEST/watermark.json",
+        )
+        self.assertEqual(
+            state_store.put_calls[0]["payload"]["last_seen_trade_time"],
             "2026-05-14T13:29:30Z",
         )
         self.assertEqual(
-            state_store.put_calls[0]["payload"]["markets"]["KXTEST"]["checked_through_time"],
+            state_store.put_calls[0]["payload"]["checked_through_time"],
             "2026-05-14T13:30:45Z",
         )
 
@@ -244,12 +248,9 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
         state_store = FakeStateStore(
             {
                 "version": 1,
-                "markets": {
-                    "KXTEST": {
-                        "checked_through_ts": 1778761845,
-                        "checked_through_time": "2026-05-14T12:30:45Z",
-                    }
-                },
+                "market_ticker": "KXTEST",
+                "checked_through_ts": 1778761845,
+                "checked_through_time": "2026-05-14T12:30:45Z",
             }
         )
 
@@ -274,6 +275,34 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
             },
         )
 
+    def test_incremental_run_honors_zero_overlap(self):
+        markets_client = FakeMarketsClient()
+        state_store = FakeStateStore(
+            {
+                "version": 1,
+                "market_ticker": "KXTEST",
+                "checked_through_ts": 1778761845,
+                "checked_through_time": "2026-05-14T12:30:45Z",
+            }
+        )
+
+        markets_landing.run(
+            {
+                "s3_bucket": "snowflake-landing",
+                "market_ticker": "KXTEST",
+                "trade_watermark_overlap_seconds": 0,
+            },
+            markets_client=markets_client,
+            s3_writer=FakeS3Writer(),
+            state_store=state_store,
+            now=dt.datetime(2026, 5, 14, 13, 30, 45, tzinfo=dt.timezone.utc),
+        )
+
+        self.assertEqual(
+            markets_client.detail_calls[0]["trade_fetch_options_by_ticker"]["KXTEST"]["min_ts"],
+            1778761845,
+        )
+
     def test_incremental_empty_trade_run_still_advances_checked_through_state(self):
         state_store = FakeStateStore()
 
@@ -289,8 +318,9 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
         )
 
         state = state_store.put_calls[0]["payload"]
-        self.assertEqual(state["markets"]["KXTEST"]["checked_through_time"], "2026-05-14T13:30:45Z")
-        self.assertNotIn("last_seen_trade_time", state["markets"]["KXTEST"])
+        self.assertEqual(state["market_ticker"], "KXTEST")
+        self.assertEqual(state["checked_through_time"], "2026-05-14T13:30:45Z")
+        self.assertNotIn("last_seen_trade_time", state)
 
     def test_backfill_mode_requires_explicit_start_and_does_not_update_watermark_by_default(self):
         markets_client = FakeMarketsClient()

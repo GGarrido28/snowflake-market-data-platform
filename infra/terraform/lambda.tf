@@ -96,9 +96,10 @@ resource "aws_lambda_function" "kalshi_markets" {
   package_type  = "Image"
   image_uri     = local.image_uri
 
-  architectures = ["x86_64"]
-  memory_size   = var.lambda_memory_mb
-  timeout       = var.lambda_timeout_seconds
+  architectures                  = ["x86_64"]
+  memory_size                    = var.lambda_memory_mb
+  timeout                        = var.lambda_timeout_seconds
+  reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency
 
   image_config {
     command = ["market_data_platform.lambda_handlers.kalshi_markets.lambda_handler"]
