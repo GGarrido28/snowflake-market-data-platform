@@ -36,6 +36,48 @@ Empty market trade files from no-trade windows are valid zero-row files. They
 should show in Snowpipe load history, create no placeholder rows, and leave
 `RAW_MARKET_TRADES` unchanged.
 
+## Operational Prerequisites
+
+These steps require different credentials; keep the manual smoke checks out of
+CI.
+
+- AWS SSO/profile access for account `893072528957`, normally profile
+  `ggarrido`, with Lambda, ECR, Terraform backend, S3, EventBridge Scheduler,
+  and IAM permissions.
+- Snowflake role access that can alter `S3_MLB_TEAMS_INT`, create objects in
+  `PROD.RAW`, resume tasks, and run dbt against `PROD.RAW`, `PROD.STAGE`, and
+  `PROD.KALSHI`.
+- Kalshi API credentials already stored in AWS Secrets Manager and wired to the
+  Kalshi Lambda environment by Terraform.
+- Docker Desktop running when building/pushing the Lambda image.
+- `terraform.tfvars` has all three market pipe notification channels set
+  together after `SHOW PIPES` returns the Snowflake-managed SQS ARNs.
+
+Use the repository `.env` or equivalent process environment for dbt:
+
+```powershell
+Get-Content ..\.env | ForEach-Object {
+  if ($_.Trim() -and -not $_.Trim().StartsWith('#')) {
+    $parts = $_ -split '=', 2
+    [Environment]::SetEnvironmentVariable($parts[0], $parts[1], 'Process')
+  }
+}
+```
+
+## Operator Checklist
+
+1. Deploy or update the Kalshi Lambda image and Terraform-managed Lambda
+   resources.
+2. Verify the EventBridge Scheduler entry exists and is intentionally enabled
+   or disabled.
+3. Run `infra/snowflake/kalshi_markets_snowpipe.sql` with
+   `<task_warehouse>` replaced and resume the merge/cleanup tasks.
+4. Copy the three market pipe `notification_channel` values into Terraform and
+   apply the S3 bucket notification configuration.
+5. Invoke a scoped manual smoke test or wait for the schedule.
+6. Confirm S3 files, Snowpipe load history, stream/task state, final RAW rows,
+   and targeted dbt build/test.
+
 ## Setup Steps
 
 1. Deploy or update the Kalshi Markets Lambda from PowerShell:
@@ -49,6 +91,26 @@ should show in Snowpipe load history, create no placeholder rows, and leave
    Issue #54 provides the required Lambda, IAM, S3 landing prefixes, and manual
    invoke output. Issue #55 provides bounded incremental trade watermarking.
    Issue #56 provides the conservative EventBridge schedule.
+
+   For a plan-only deployment check that preserves the currently deployed image
+   tag:
+
+   ```powershell
+   .\scripts\deploy_kalshi_lambdas.ps1 `
+     -Profile ggarrido `
+     -Region us-east-2 `
+     -SkipBuild `
+     -PlanOnly
+   ```
+
+   To apply only scheduler-related Terraform changes while preserving the
+   deployed Lambda image tag:
+
+   ```powershell
+   .\scripts\deploy_ingestion_schedulers.ps1 `
+     -Profile ggarrido `
+     -Region us-east-2
+   ```
 
 2. Confirm Terraform has been applied and the Snowflake S3 read role can read
    the Kalshi market landing prefixes:
@@ -90,6 +152,24 @@ should show in Snowpipe load history, create no placeholder rows, and leave
    notification channels together because Terraform owns the bucket's full
    notification configuration.
 
+   The market-specific Terraform variables are:
+
+   ```hcl
+   kalshi_markets_pipe_notification_channel           = "arn:aws:sqs:..."
+   kalshi_market_orderbooks_pipe_notification_channel = "arn:aws:sqs:..."
+   kalshi_market_trades_pipe_notification_channel     = "arn:aws:sqs:..."
+   ```
+
+   After applying Terraform, verify S3 sees all three market event notification
+   prefixes:
+
+   ```powershell
+   aws s3api get-bucket-notification-configuration `
+     --bucket snowflake-kalshi-project `
+     --profile ggarrido `
+     --region us-east-2
+   ```
+
 6. If files landed before notifications existed, refresh the pipes:
 
    ```sql
@@ -104,10 +184,14 @@ These checks require AWS credentials, deployed Lambda functions, and Kalshi
 credentials configured through AWS Secrets Manager. Keep them separate from
 CI-safe tests.
 
+Manual smoke checks require AWS credentials and live Snowflake/Kalshi
+configuration; do not wire them into pull-request CI.
+
 Invoke a single market:
 
 ```powershell
 $Region = "us-east-2"
+$Profile = "ggarrido"
 $MarketsFunctionName = terraform -chdir=infra/terraform output -raw kalshi_markets_lambda_function_name
 
 aws lambda invoke `
@@ -115,6 +199,7 @@ aws lambda invoke `
   --payload '{"market_ticker":"KXTEST","trade_fetch_mode":"incremental"}' `
   --cli-binary-format raw-in-base64-out `
   --region $Region `
+  --profile $Profile `
   kalshi-markets-response.json
 
 Get-Content kalshi-markets-response.json
@@ -132,13 +217,67 @@ aws lambda invoke `
   --payload '{"event_query_file":"src/market_data_platform/queries/kalshi/markets_mlb_events.sql","trade_fetch_mode":"incremental"}' `
   --cli-binary-format raw-in-base64-out `
   --region $Region `
+  --profile $Profile `
   kalshi-markets-query-response.json
 ```
+
+Invoke an explicit event scope when validating one event without the query-file
+Snowflake dependency:
+
+```powershell
+aws lambda invoke `
+  --function-name $MarketsFunctionName `
+  --payload '{"event_ticker":"KXMLBSPREAD-26MAY19","trade_fetch_mode":"incremental"}' `
+  --cli-binary-format raw-in-base64-out `
+  --region $Region `
+  --profile $Profile `
+  kalshi-markets-event-response.json
+```
+
+Run an explicit bounded backfill only when you intend to revisit historical
+trades. Backfills do not advance the scheduled incremental watermark unless the
+payload opts into that behavior in code.
+
+```powershell
+aws lambda invoke `
+  --function-name $MarketsFunctionName `
+  --payload '{"market_ticker":"KXTEST","trade_fetch_mode":"backfill","trade_start_ts":"2026-05-18T00:00:00Z","trade_end_ts":"2026-05-19T00:00:00Z"}' `
+  --cli-binary-format raw-in-base64-out `
+  --region $Region `
+  --profile $Profile `
+  kalshi-markets-backfill-response.json
+```
+
+Check the scheduler payload and state:
+
+```powershell
+$ScheduleName = terraform -chdir=infra/terraform output -raw kalshi_markets_schedule_name
+
+aws scheduler get-schedule `
+  --name $ScheduleName `
+  --group-name default `
+  --region $Region `
+  --profile $Profile
+```
+
+The deployed schedule should use the bounded query-file scope unless
+`kalshi_markets_market_ticker` or `kalshi_markets_event_ticker` is configured
+for a narrower run.
 
 ## Validation SQL
 
 Run these checks after the Lambda smoke invoke or scheduled run has written S3
 files and the Snowpipe notifications have had time to fire.
+
+Check S3 files first. The presence of a trades file with zero data rows is not
+an error; confirm it reached S3 and Snowpipe load history.
+
+```powershell
+aws s3 ls s3://snowflake-kalshi-project/raw/kalshi/markets/ --recursive --human-readable --summarize --profile ggarrido --region us-east-2
+aws s3 ls s3://snowflake-kalshi-project/raw/kalshi/market_orderbooks/ --recursive --human-readable --summarize --profile ggarrido --region us-east-2
+aws s3 ls s3://snowflake-kalshi-project/raw/kalshi/market_trades/ --recursive --human-readable --summarize --profile ggarrido --region us-east-2
+aws s3 ls s3://snowflake-kalshi-project/state/kalshi/market_trades/ --recursive --human-readable --summarize --profile ggarrido --region us-east-2
+```
 
 Check pipe status:
 
@@ -193,6 +332,8 @@ SELECT SYSTEM$STREAM_HAS_DATA('PROD.RAW.STRM_RAW_KALSHI_MARKET_TRADES_LOAD') AS 
 Check task execution:
 
 ```sql
+SHOW TASKS LIKE 'TASK_%KALSHI%MARKET%';
+
 SELECT *
 FROM TABLE(PROD.INFORMATION_SCHEMA.TASK_HISTORY(
   TASK_NAME => 'TASK_MERGE_KALSHI_MARKETS',
@@ -215,13 +356,13 @@ FROM TABLE(PROD.INFORMATION_SCHEMA.TASK_HISTORY(
 Confirm final RAW row counts and key uniqueness:
 
 ```sql
-SELECT COUNT(*) AS raw_markets_rows
+SELECT COUNT(*) AS raw_markets_rows, MAX("snowpipe_loaded_at") AS latest_load
 FROM PROD.RAW.RAW_MARKETS;
 
-SELECT COUNT(*) AS raw_orderbooks_rows
+SELECT COUNT(*) AS raw_orderbooks_rows, MAX("snowpipe_loaded_at") AS latest_load
 FROM PROD.RAW.RAW_MARKET_ORDERBOOKS;
 
-SELECT COUNT(*) AS raw_trades_rows
+SELECT COUNT(*) AS raw_trades_rows, MAX("snowpipe_loaded_at") AS latest_load
 FROM PROD.RAW.RAW_MARKET_TRADES;
 
 SELECT "ticker", COUNT(*) AS row_count
@@ -252,6 +393,17 @@ WHERE "trade_id" IS NULL;
 ```
 
 The result should be zero.
+
+## Expected Outcomes
+
+| Layer | Success signal |
+| --- | --- |
+| Lambda | Response contains `row_counts` and S3 `writes` for `markets`, `market_orderbooks`, and `market_trades`. |
+| S3 | New JSONL files appear under all three market prefixes; trade files may be zero-row. |
+| Snowpipe | `COPY_HISTORY` shows loaded files for the corresponding load tables. |
+| Streams/tasks | Streams drain after merge tasks run; task history shows successful runs. |
+| Final RAW | Stable keys are unique and `"snowpipe_loaded_at"` is populated for automated rows. |
+| dbt | Targeted market staging and mart `dbt build` completes with tests passing. |
 
 ## dbt Staging Contract
 

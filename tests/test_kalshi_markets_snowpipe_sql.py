@@ -129,6 +129,62 @@ class KalshiMarketsSnowpipeSqlTests(unittest.TestCase):
         self.assertIn("python -m unittest discover -s tests -v", runbook)
         self.assertIn("dbt parse --profiles-dir .", runbook)
 
+    def test_runbook_documents_full_operational_flow_for_issue_60(self):
+        runbook = _runbook()
+
+        for section in (
+            "Operational Prerequisites",
+            "Operator Checklist",
+            "Manual Smoke Tests",
+            "Validation SQL",
+            "Expected Outcomes",
+            "dbt Staging Contract",
+            "CI-Safe Tests",
+            "Cleanup Behavior",
+            "Cost Controls",
+        ):
+            self.assertIn(section, runbook)
+
+        for deployment_token in (
+            "deploy_kalshi_lambdas.ps1",
+            "deploy_ingestion_schedulers.ps1",
+            "kalshi_markets_schedule_name",
+            "aws scheduler get-schedule",
+            "get-bucket-notification-configuration",
+            "kalshi_markets_pipe_notification_channel",
+            "kalshi_market_orderbooks_pipe_notification_channel",
+            "kalshi_market_trades_pipe_notification_channel",
+        ):
+            self.assertIn(deployment_token, runbook)
+
+        for payload_token in (
+            '"market_ticker":"KXTEST"',
+            '"event_ticker":"KXMLBSPREAD-26MAY19"',
+            '"event_query_file":"src/market_data_platform/queries/kalshi/markets_mlb_events.sql"',
+            '"trade_fetch_mode":"incremental"',
+            '"trade_fetch_mode":"backfill"',
+            '"trade_start_ts":"2026-05-18T00:00:00Z"',
+            '"trade_end_ts":"2026-05-19T00:00:00Z"',
+        ):
+            self.assertIn(payload_token, runbook)
+
+        for validation_token in (
+            "aws s3 ls s3://snowflake-kalshi-project/raw/kalshi/markets/",
+            "aws s3 ls s3://snowflake-kalshi-project/raw/kalshi/market_orderbooks/",
+            "aws s3 ls s3://snowflake-kalshi-project/raw/kalshi/market_trades/",
+            "aws s3 ls s3://snowflake-kalshi-project/state/kalshi/market_trades/",
+            'MAX("snowpipe_loaded_at") AS latest_load',
+            "SHOW TASKS LIKE 'TASK_%KALSHI%MARKET%'",
+            "row_counts",
+            "Snowpipe",
+            "Streams/tasks",
+            "Final RAW",
+        ):
+            self.assertIn(validation_token, runbook)
+
+        self.assertIn("Manual smoke checks require AWS credentials", runbook)
+        self.assertIn("trade files may be zero-row", runbook)
+
 
 if __name__ == "__main__":
     unittest.main()
