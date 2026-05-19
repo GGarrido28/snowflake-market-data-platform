@@ -154,6 +154,21 @@ sources:
           - name: price_ranges
             description: Nested payload describing price-range buckets used for scalar markets.
             data_type: object
+          - name: ingested_at
+            description: Timestamp assigned by the ingestion job when the source file or direct load row was produced.
+            data_type: timestamp
+          - name: raw_payload
+            description: Original Kalshi market payload retained for audit and schema-drift inspection.
+            data_type: object
+          - name: source_file
+            description: S3 object key loaded by Snowpipe; null for rows written by the direct loader.
+            data_type: string
+          - name: source_row_number
+            description: Row number within the loaded S3 object; null for rows written by the direct loader.
+            data_type: number
+          - name: snowpipe_loaded_at
+            description: Timestamp Snowflake recorded when scanning the source file; null for rows written by the direct loader.
+            data_type: timestamp
       - name: market_orderbooks
         identifier: RAW_MARKET_ORDERBOOKS
         description: Raw order book snapshots keyed by market ticker.
@@ -164,6 +179,21 @@ sources:
           - name: orderbook
             description: JSON orderbook snapshot containing yes_dollars and no_dollars price ladders.
             data_type: object
+          - name: ingested_at
+            description: Timestamp assigned by the ingestion job when the source file or direct load row was produced.
+            data_type: timestamp
+          - name: raw_payload
+            description: Original Kalshi orderbook payload retained for audit and schema-drift inspection.
+            data_type: object
+          - name: source_file
+            description: S3 object key loaded by Snowpipe; null for rows written by the direct loader.
+            data_type: string
+          - name: source_row_number
+            description: Row number within the loaded S3 object; null for rows written by the direct loader.
+            data_type: number
+          - name: snowpipe_loaded_at
+            description: Timestamp Snowflake recorded when scanning the source file; null for rows written by the direct loader.
+            data_type: timestamp
       - name: market_trades
         identifier: RAW_MARKET_TRADES
         description: Raw trade-level payloads from the Kalshi API.
@@ -189,6 +219,21 @@ sources:
           - name: created_time
             description: Trade execution timestamp returned by the API.
             data_type: timestamp string
+          - name: ingested_at
+            description: Timestamp assigned by the ingestion job when the source file or direct load row was produced.
+            data_type: timestamp
+          - name: raw_payload
+            description: Original Kalshi trade payload retained for audit and schema-drift inspection.
+            data_type: object
+          - name: source_file
+            description: S3 object key loaded by Snowpipe; null for rows written by the direct loader.
+            data_type: string
+          - name: source_row_number
+            description: Row number within the loaded S3 object; null for rows written by the direct loader.
+            data_type: number
+          - name: snowpipe_loaded_at
+            description: Timestamp Snowflake recorded when scanning the source file; null for rows written by the direct loader.
+            data_type: timestamp
       - name: events
         identifier: RAW_EVENTS
         description: Current-state event-level payloads from the Kalshi API, keyed by event_ticker after direct loading or Snowpipe merge.
