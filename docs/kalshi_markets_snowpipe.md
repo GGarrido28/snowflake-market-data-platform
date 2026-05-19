@@ -75,9 +75,8 @@ should show in Snowpipe load history, create no placeholder rows, and leave
    SHOW PIPES LIKE 'PIPE_KALSHI_MARKET_TRADES';
    ```
 
-   Record each `notification_channel` ARN. Issue #58 adds the Terraform
-   variables and bucket-notification entries that will wire these market pipes
-   into S3 `ObjectCreated` notifications:
+   Copy each `notification_channel` ARN into Terraform-managed S3
+   `ObjectCreated` notifications:
 
    | Pipe | Prefix | Suffix |
    | --- | --- | --- |
@@ -85,10 +84,7 @@ should show in Snowpipe load history, create no placeholder rows, and leave
    | `PIPE_KALSHI_MARKET_ORDERBOOKS` | `raw/kalshi/market_orderbooks/` | `.jsonl` |
    | `PIPE_KALSHI_MARKET_TRADES` | `raw/kalshi/market_trades/` | `.jsonl` |
 
-   Until #58 is applied, either run the `ALTER PIPE ... REFRESH` commands below
-   for files that have already landed or wire the three market notifications
-   manually outside Terraform with care. The shared bucket notification
-   Terraform workflow is documented in
+   The shared bucket notification Terraform workflow is documented in
    [`snowpipe_s3_notifications.md`](./snowpipe_s3_notifications.md). Configure
    the MLB Teams, Kalshi Events, Kalshi Series, and Kalshi market-related pipe
    notification channels together because Terraform owns the bucket's full

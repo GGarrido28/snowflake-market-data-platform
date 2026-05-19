@@ -121,9 +121,8 @@ class KalshiMarketsSnowpipeSqlTests(unittest.TestCase):
 
         self.assertIn("Kalshi Markets Lambda", runbook)
         self.assertIn("Issue #54", runbook)
-        self.assertIn("Issue #58", runbook)
-        self.assertIn("Until #58 is applied", runbook)
         self.assertIn("aws lambda invoke", runbook)
+        self.assertIn("Copy each `notification_channel` ARN into Terraform-managed S3", runbook)
         self.assertIn("snowpipe_s3_notifications.md", runbook)
         self.assertIn("Manual Smoke Tests", runbook)
         self.assertIn("CI-Safe Tests", runbook)

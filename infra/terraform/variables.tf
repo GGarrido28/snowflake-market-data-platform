@@ -65,35 +65,70 @@ variable "kalshi_market_trades_state_prefix" {
 }
 
 variable "mlb_teams_pipe_notification_channel" {
-  description = "Snowflake PIPE_MLB_TEAMS notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
+  description = "Snowflake PIPE_MLB_TEAMS notification_channel SQS ARN. Set the MLB Teams, Kalshi Events, and Kalshi Series channels together before Terraform manages bucket notifications. Set the three Kalshi market channels together when those pipes are ready."
   type        = string
   default     = null
 
   validation {
     condition = (
-      length(compact([
-        trimspace(var.mlb_teams_pipe_notification_channel != null ? var.mlb_teams_pipe_notification_channel : ""),
-        trimspace(var.kalshi_events_pipe_notification_channel != null ? var.kalshi_events_pipe_notification_channel : ""),
-        trimspace(var.kalshi_series_pipe_notification_channel != null ? var.kalshi_series_pipe_notification_channel : ""),
-      ])) == 0
-      || length(compact([
-        trimspace(var.mlb_teams_pipe_notification_channel != null ? var.mlb_teams_pipe_notification_channel : ""),
-        trimspace(var.kalshi_events_pipe_notification_channel != null ? var.kalshi_events_pipe_notification_channel : ""),
-        trimspace(var.kalshi_series_pipe_notification_channel != null ? var.kalshi_series_pipe_notification_channel : ""),
-      ])) == 3
+      (
+        length(compact([
+          trimspace(var.mlb_teams_pipe_notification_channel != null ? var.mlb_teams_pipe_notification_channel : ""),
+          trimspace(var.kalshi_events_pipe_notification_channel != null ? var.kalshi_events_pipe_notification_channel : ""),
+          trimspace(var.kalshi_series_pipe_notification_channel != null ? var.kalshi_series_pipe_notification_channel : ""),
+        ])) == 0
+        && length(compact([
+          trimspace(var.kalshi_markets_pipe_notification_channel != null ? var.kalshi_markets_pipe_notification_channel : ""),
+          trimspace(var.kalshi_market_orderbooks_pipe_notification_channel != null ? var.kalshi_market_orderbooks_pipe_notification_channel : ""),
+          trimspace(var.kalshi_market_trades_pipe_notification_channel != null ? var.kalshi_market_trades_pipe_notification_channel : ""),
+        ])) == 0
+      )
+      || (
+        length(compact([
+          trimspace(var.mlb_teams_pipe_notification_channel != null ? var.mlb_teams_pipe_notification_channel : ""),
+          trimspace(var.kalshi_events_pipe_notification_channel != null ? var.kalshi_events_pipe_notification_channel : ""),
+          trimspace(var.kalshi_series_pipe_notification_channel != null ? var.kalshi_series_pipe_notification_channel : ""),
+        ])) == 3
+        && contains(
+          [0, 3],
+          length(compact([
+            trimspace(var.kalshi_markets_pipe_notification_channel != null ? var.kalshi_markets_pipe_notification_channel : ""),
+            trimspace(var.kalshi_market_orderbooks_pipe_notification_channel != null ? var.kalshi_market_orderbooks_pipe_notification_channel : ""),
+            trimspace(var.kalshi_market_trades_pipe_notification_channel != null ? var.kalshi_market_trades_pipe_notification_channel : ""),
+          ]))
+        )
+      )
     )
-    error_message = "Set all three Snowpipe notification channel ARNs together, or leave all three null. Terraform owns the bucket's full notification configuration."
+    error_message = "Set the base Snowpipe notification channel ARNs together, or leave all channels null. When adding Kalshi market Snowpipe notifications, set all three market channel ARNs together. Terraform owns the bucket's full notification configuration."
   }
 }
 
 variable "kalshi_events_pipe_notification_channel" {
-  description = "Snowflake PIPE_KALSHI_EVENTS notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
+  description = "Snowflake PIPE_KALSHI_EVENTS notification_channel SQS ARN. Set with mlb_teams_pipe_notification_channel and kalshi_series_pipe_notification_channel before Terraform manages bucket notifications."
   type        = string
   default     = null
 }
 
 variable "kalshi_series_pipe_notification_channel" {
-  description = "Snowflake PIPE_KALSHI_SERIES notification_channel SQS ARN. Set all Snowpipe notification channels together before Terraform manages bucket notifications."
+  description = "Snowflake PIPE_KALSHI_SERIES notification_channel SQS ARN. Set with mlb_teams_pipe_notification_channel and kalshi_events_pipe_notification_channel before Terraform manages bucket notifications."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_markets_pipe_notification_channel" {
+  description = "Snowflake PIPE_KALSHI_MARKETS notification_channel SQS ARN. Optional until market Snowpipes exist; set all three Kalshi market pipe channels together."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_market_orderbooks_pipe_notification_channel" {
+  description = "Snowflake PIPE_KALSHI_MARKET_ORDERBOOKS notification_channel SQS ARN. Optional until market Snowpipes exist; set all three Kalshi market pipe channels together."
+  type        = string
+  default     = null
+}
+
+variable "kalshi_market_trades_pipe_notification_channel" {
+  description = "Snowflake PIPE_KALSHI_MARKET_TRADES notification_channel SQS ARN. Optional until market Snowpipes exist; set all three Kalshi market pipe channels together."
   type        = string
   default     = null
 }
