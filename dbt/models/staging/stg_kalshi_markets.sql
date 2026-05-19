@@ -3,7 +3,7 @@
 {# Kalshi's market response shape varies by market type (Spread, Total, Hits, etc.),
    so anything beyond the merge keys (ticker, event_ticker) may legitimately be absent.
    The optional_* macros emit a passthrough/try_cast when the source column exists and
-   a typed NULL otherwise. See dbt/macros/optional_raw_markets_column.sql. #}
+   a typed NULL otherwise. See dbt/macros/optional_column.sql. #}
 
 {% set raw_markets_relation = source('kalshi_raw', 'markets') %}
 {% set raw_markets_columns = adapter.get_columns_in_relation(raw_markets_relation) %}

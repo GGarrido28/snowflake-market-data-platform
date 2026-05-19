@@ -268,7 +268,24 @@ tables are Snowpipe inboxes and must not be referenced by dbt models.
 The S3/Snowpipe path adds audit columns to all three final raw tables:
 `ingested_at`, `raw_payload`, `source_file`, `source_row_number`, and
 `snowpipe_loaded_at`. Those columns are retained on raw sources for validation
-and drift inspection. The staging models keep their existing analytics contract.
+and drift inspection. Snowflake stores these as quoted lower-case identifiers,
+so manual validation queries must reference `"snowpipe_loaded_at"`,
+`"source_file"`, and `"source_row_number"` with double quotes. The staging
+models keep their existing analytics contract.
+
+Before running dbt, confirm automated Snowpipe rows reached the final raw
+tables:
+
+```sql
+SELECT COUNT(*) AS rows_loaded, MAX("snowpipe_loaded_at") AS latest_load
+FROM PROD.RAW.RAW_MARKETS;
+
+SELECT COUNT(*) AS rows_loaded, MAX("snowpipe_loaded_at") AS latest_load
+FROM PROD.RAW.RAW_MARKET_ORDERBOOKS;
+
+SELECT COUNT(*) AS rows_loaded, MAX("snowpipe_loaded_at") AS latest_load
+FROM PROD.RAW.RAW_MARKET_TRADES;
+```
 
 After sample market files have landed and the merge tasks have run, validate dbt
 with:
@@ -278,7 +295,7 @@ cd dbt
 $env:DBT_PROFILES_DIR = (Get-Location).Path
 dbt deps
 dbt parse
-dbt compile --select stg_kalshi_markets stg_kalshi_market_orderbooks stg_kalshi_market_trades
+dbt compile --select stg_kalshi_markets stg_kalshi_market_orderbooks stg_kalshi_market_trades fct_markets fct_market_orderbooks
 dbt build --select stg_kalshi_markets stg_kalshi_market_orderbooks stg_kalshi_market_trades fct_markets fct_market_orderbooks
 ```
 
