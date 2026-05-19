@@ -16,31 +16,106 @@ models:
               arguments:
                 to: ref('stg_kalshi_events')
                 field: event_ticker
-      - name: market_status
-        description: Current lifecycle status reported by Kalshi for the market.
       - name: market_title
         description: Human-readable market title.
+      - name: market_type
+        description: Kalshi-assigned market type, when supplied by the raw payload.
+      - name: market_status
+        description: Current lifecycle status reported by Kalshi for the market.
+      - name: market_result
+        description: Settled market outcome once the market resolves.
+      - name: market_subtitle
+        description: Secondary market label, either from subtitle or from matching yes/no subtitles.
+      - name: yes_subtitle
+        description: Yes-side market outcome label.
+      - name: no_subtitle
+        description: No-side market outcome label.
+      - name: primary_rules
+        description: Primary market resolution rules text.
+      - name: secondary_rules
+        description: Supplementary market resolution rules text.
+      - name: response_price_units
+        description: Unit system used by the Kalshi API for prices.
+      - name: price_level_structure
+        description: Description of how price levels are bucketed for the market.
+      - name: strike_type
+        description: Strike configuration assigned to the market.
+      - name: expiration_value
+        description: Strike expiration value used in market resolution logic.
+      - name: early_close_condition
+        description: Condition under which the market can close early.
+      - name: primary_participant_key
+        description: Key identifying the primary participant associated with the market.
+      - name: can_close_early
+        description: Whether the market can close early.
+      - name: is_fractional_trading_enabled
+        description: Whether fractional trading is enabled for the market.
       - name: created_at
         description: Market creation timestamp normalized to Snowflake TIMESTAMP_NTZ.
       - name: open_at
         description: Market open timestamp normalized to Snowflake TIMESTAMP_NTZ.
       - name: close_at
         description: Market close timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: expected_expiration_at
+        description: Expected market expiration timestamp normalized to Snowflake TIMESTAMP_NTZ.
       - name: expiration_at
         description: Market expiration timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: latest_expiration_at
+        description: Latest possible market expiration timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: updated_at
+        description: Market metadata update timestamp normalized to Snowflake TIMESTAMP_NTZ.
+      - name: fee_waiver_expiration_at
+        description: Fee waiver expiration timestamp normalized to Snowflake TIMESTAMP_NTZ.
       - name: last_price_dollars
         description: Last traded market price in dollars as a numeric value.
       - name: liquidity_dollars
         description: Available market liquidity in dollars as a numeric value.
-      - name: yes_bid_dollars
-        description: Current yes-side bid price in dollars as a numeric value.
+      - name: no_ask_dollars
+        description: Current no-side ask price in dollars as a numeric value.
+      - name: no_bid_dollars
+        description: Current no-side bid price in dollars as a numeric value.
+      - name: notional_value_dollars
+        description: Notional contract value in dollars as a numeric value.
+      - name: previous_price_dollars
+        description: Prior market price snapshot in dollars as a numeric value.
+      - name: previous_yes_ask_dollars
+        description: Prior yes-side ask price in dollars as a numeric value.
+      - name: previous_yes_bid_dollars
+        description: Prior yes-side bid price in dollars as a numeric value.
       - name: yes_ask_dollars
         description: Current yes-side ask price in dollars as a numeric value.
+      - name: yes_bid_dollars
+        description: Current yes-side bid price in dollars as a numeric value.
+      - name: open_interest_fp
+        description: Fixed-point open interest reported for the market.
+      - name: volume_24h_fp
+        description: Fixed-point trailing 24-hour traded volume for the market.
+      - name: volume_fp
+        description: Fixed-point total traded volume for the market.
+      - name: yes_ask_size_fp
+        description: Fixed-point size at the top of the yes-side ask.
+      - name: yes_bid_size_fp
+        description: Fixed-point size at the top of the yes-side bid.
+      - name: settlement_timer_seconds
+        description: Settlement timer countdown for the market, in seconds.
+      - name: tick_size
+        description: Minimum price increment for orders on the market.
+      - name: floor_strike
+        description: Lower strike bound for ranged markets.
+      - name: cap_strike
+        description: Upper strike bound for ranged markets.
+      - name: custom_strike
+        description: Custom strike payload for non-standard market structures.
+      - name: price_ranges
+        description: Nested payload describing price-range buckets used for scalar markets.
   - name: stg_kalshi_market_orderbooks
     description: One-to-one staging view over the raw Kalshi market order books table.
     columns:
       - name: market_ticker
         description: Kalshi market ticker for the orderbook snapshot.
+        tests:
+          - not_null
+          - unique
       - name: orderbook
         description: JSON orderbook snapshot containing yes_dollars and no_dollars bid ladders.
   - name: stg_kalshi_market_trades
@@ -48,16 +123,19 @@ models:
     columns:
       - name: trade_id
         description: Stable Kalshi trade identifier.
+        tests:
+          - not_null
+          - unique
       - name: market_ticker
         description: Market ticker for the traded market.
       - name: count_fp
         description: Fixed-point trade size returned by the API.
-      - name: yes_price_dollars
-        description: Yes-side execution price in dollars.
-      - name: no_price_dollars
-        description: No-side execution price in dollars.
       - name: taker_side
         description: Side of the aggressing order for the trade.
+      - name: no_price_dollars
+        description: No-side execution price in dollars.
+      - name: yes_price_dollars
+        description: Yes-side execution price in dollars.
       - name: trade_time
         description: Trade execution timestamp normalized to Snowflake TIMESTAMP_NTZ.
   - name: stg_kalshi_events
