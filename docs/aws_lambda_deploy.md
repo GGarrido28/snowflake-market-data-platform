@@ -254,6 +254,9 @@ per-market watermark object under `state/kalshi/market_trades/`. Do not delete
 landed JSONL files under `raw/kalshi/market_trades/`; those files are Snowpipe
 inputs.
 
+Snowflake RAW landing setup for the Markets, market orderbook, and market trade
+prefixes lives in [`docs/kalshi_markets_snowpipe.md`](./kalshi_markets_snowpipe.md).
+
 ## Scheduled Kalshi Payloads
 
 The Kalshi EventBridge schedules invoke their matching Lambda only. The scheduler IAM policy for each schedule is scoped to the corresponding Lambda ARN, and the target payload is generated from Terraform variables.
