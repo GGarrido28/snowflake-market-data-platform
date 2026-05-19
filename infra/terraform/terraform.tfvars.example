@@ -13,11 +13,16 @@ kalshi_market_trades_s3_prefix     = "raw/kalshi/market_trades"
 kalshi_market_trades_state_prefix  = "state/kalshi/market_trades"
 
 # Snowflake pipe notification_channel SQS ARNs from SHOW PIPES.
-# Set all three together before applying aws_s3_bucket_notification because
-# Terraform owns the bucket's full notification configuration.
-mlb_teams_pipe_notification_channel     = null
-kalshi_events_pipe_notification_channel = null
-kalshi_series_pipe_notification_channel = null
+# Set the base three together before applying aws_s3_bucket_notification because
+# Terraform owns the bucket's full notification configuration. The market pipe
+# ARNs are optional until the Kalshi market Snowpipes exist; when adding them,
+# set all three market ARNs together.
+mlb_teams_pipe_notification_channel                = null
+kalshi_events_pipe_notification_channel            = null
+kalshi_series_pipe_notification_channel            = null
+kalshi_markets_pipe_notification_channel           = null
+kalshi_market_orderbooks_pipe_notification_channel = null
+kalshi_market_trades_pipe_notification_channel     = null
 
 lambda_image_tag               = "latest"
 mlb_teams_sport_id             = "1"
