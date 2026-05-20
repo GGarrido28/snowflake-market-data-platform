@@ -47,6 +47,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             "kalshi_market_trades_watermark_overlap_seconds",
             "kalshi_markets_read_requests_per_second",
             "kalshi_markets_reserved_concurrency",
+            "kalshi_markets_lambda_timeout_seconds",
             "kalshi_markets_snowflake_account",
             "kalshi_markets_snowflake_user",
             "kalshi_markets_snowflake_warehouse",
@@ -61,6 +62,9 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("kalshi_markets_event_query_file requires", variables)
         self.assertIn("kalshi_markets_read_requests_per_second must be a whole number between 1 and 20", variables)
         self.assertIn("kalshi_markets_reserved_concurrency must be null or at least 1", variables)
+        self.assertIn("kalshi_markets_lambda_timeout_seconds must be null or a whole number between 1 and 900", variables)
+        self.assertIn('variable "kalshi_markets_lambda_timeout_seconds"', variables)
+        self.assertIn("default     = 300", variables)
         self.assertRegex(tfvars_example, r'kalshi_markets_schedule_state\s*=\s*"ENABLED"')
         self.assertIn('default     = "cron(15,45 * * * ? *)"', variables)
         self.assertRegex(tfvars_example, r'kalshi_markets_schedule_expression\s*=\s*"cron\(15,45 \* \* \* \? \*\)"')
@@ -96,6 +100,10 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("KALSHI_MARKET_TRADES_FIRST_RUN_LOOKBACK_HOURS", terraform)
         self.assertIn("KALSHI_MARKET_TRADES_WATERMARK_OVERLAP_SECONDS", terraform)
         self.assertIn("KALSHI_MARKETS_READ_REQUESTS_PER_SECOND", terraform)
+        self.assertIn(
+            "timeout                        = coalesce(var.kalshi_markets_lambda_timeout_seconds, var.lambda_timeout_seconds)",
+            terraform,
+        )
         self.assertIn("reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency", terraform)
         self.assertEqual(terraform.count("reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency"), 1)
         self.assertGreater(

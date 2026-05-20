@@ -456,6 +456,21 @@ variable "lambda_timeout_seconds" {
   default     = 60
 }
 
+variable "kalshi_markets_lambda_timeout_seconds" {
+  description = "Timeout for the Kalshi markets Lambda. Set null to fall back to lambda_timeout_seconds."
+  type        = number
+  default     = 300
+
+  validation {
+    condition = var.kalshi_markets_lambda_timeout_seconds == null ? true : (
+      var.kalshi_markets_lambda_timeout_seconds == floor(var.kalshi_markets_lambda_timeout_seconds)
+      && var.kalshi_markets_lambda_timeout_seconds >= 1
+      && var.kalshi_markets_lambda_timeout_seconds <= 900
+    )
+    error_message = "kalshi_markets_lambda_timeout_seconds must be null or a whole number between 1 and 900."
+  }
+}
+
 variable "lambda_memory_mb" {
   description = "Memory size for managed Lambda functions."
   type        = number

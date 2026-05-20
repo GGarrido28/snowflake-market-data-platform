@@ -42,6 +42,7 @@ kalshi_markets_schedule_timezone   = "America/Chicago"
 # Runs the SQL-driven Markets scope when no exact market or event binding is set.
 kalshi_markets_schedule_state      = "ENABLED"
 lambda_timeout_seconds = 60
+kalshi_markets_lambda_timeout_seconds = 300
 lambda_memory_mb       = 512
 log_retention_days     = 14
 
