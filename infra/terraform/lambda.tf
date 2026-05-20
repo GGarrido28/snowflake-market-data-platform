@@ -98,7 +98,7 @@ resource "aws_lambda_function" "kalshi_markets" {
 
   architectures                  = ["x86_64"]
   memory_size                    = var.lambda_memory_mb
-  timeout                        = var.lambda_timeout_seconds
+  timeout                        = coalesce(var.kalshi_markets_lambda_timeout_seconds, var.lambda_timeout_seconds)
   reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency
 
   image_config {
