@@ -129,13 +129,13 @@ models:
       - name: market_ticker
         description: Market ticker for the traded market.
       - name: count_fp
-        description: Fixed-point trade size returned by the API.
+        description: Fixed-point trade size returned by the API as a numeric value.
       - name: taker_side
         description: Side of the aggressing order for the trade.
       - name: no_price_dollars
-        description: No-side execution price in dollars.
+        description: No-side execution price in dollars as a numeric value.
       - name: yes_price_dollars
-        description: Yes-side execution price in dollars.
+        description: Yes-side execution price in dollars as a numeric value.
       - name: trade_time
         description: Trade execution timestamp normalized to Snowflake TIMESTAMP_NTZ.
   - name: stg_kalshi_events

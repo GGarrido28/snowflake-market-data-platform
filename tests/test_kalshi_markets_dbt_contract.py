@@ -134,6 +134,12 @@ TRADES_STAGING_PROJECTION = {
     "created_time": "trade_time",
 }
 
+TRADES_NUMERIC_CASTS = {
+    "count_fp": ("count_fp", 38, 6),
+    "no_price_dollars": ("no_price_dollars", 18, 4),
+    "yes_price_dollars": ("yes_price_dollars", 18, 4),
+}
+
 LOAD_METADATA_COLUMNS = {
     "ingested_at",
     "raw_payload",
@@ -172,15 +178,54 @@ def _alter_table_columns(sql_text: str, table_name: str) -> set[str]:
     )
 
 
-def _direct_projected_columns(sql_text: str) -> dict[str, str]:
+def _select_expressions(sql_text: str) -> list[str]:
     match = re.search(r"select(?P<select>.*?)from source", sql_text, flags=re.IGNORECASE | re.DOTALL)
     assert match is not None, "Could not find staging select list"
+    expressions: list[str] = []
+    current: list[str] = []
+    depth = 0
+    quote_char = ""
+
+    for char in match.group("select"):
+        if quote_char:
+            current.append(char)
+            if char == quote_char:
+                quote_char = ""
+            continue
+
+        if char in {"'", '"'}:
+            quote_char = char
+        elif char == "(":
+            depth += 1
+        elif char == ")" and depth:
+            depth -= 1
+        elif char == "," and depth == 0:
+            expression = "".join(current).strip()
+            if expression:
+                expressions.append(expression)
+            current = []
+            continue
+
+        current.append(char)
+
+    expression = "".join(current).strip()
+    if expression:
+        expressions.append(expression)
+
+    return expressions
+
+
+def _direct_projected_columns(sql_text: str) -> dict[str, str]:
     return {
-        raw_column: alias
-        for raw_column, alias in re.findall(
-            r'"([^"]+)"[^,\n]*?\bas\s+([a-zA-Z_][a-zA-Z0-9_]*)',
-            match.group("select"),
-            flags=re.IGNORECASE,
+        raw_columns[-1]: alias_match.group(1)
+        for expression in _select_expressions(sql_text)
+        if (raw_columns := re.findall(r'"([^"]+)"', expression))
+        and (
+            alias_match := re.search(
+                r"\bas\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*(?:\}\})?\s*$",
+                expression,
+                flags=re.IGNORECASE,
+            )
         )
     }
 
@@ -191,6 +236,18 @@ def _optional_projection_calls(sql_text: str) -> dict[str, str]:
         for raw_column, alias in re.findall(
             r"optional_[a-z_]+\(\s*raw_markets_column_names,\s*'([^']+)',\s*'([^']+)'",
             sql_text,
+        )
+    }
+
+
+def _try_decimal_casts(sql_text: str) -> dict[str, tuple[str, int, int]]:
+    return {
+        raw_column: (alias, int(precision), int(scale))
+        for raw_column, precision, scale, alias in re.findall(
+            r'try_to_decimal\(\s*cast\("([^"]+)"\s+as\s+varchar\),\s*(\d+),\s*(\d+)\s*\)\s+as\s+'
+            r"([a-zA-Z_][a-zA-Z0-9_]*)",
+            sql_text,
+            flags=re.IGNORECASE,
         )
     }
 
@@ -247,6 +304,11 @@ class KalshiMarketsDbtContractTests(unittest.TestCase):
             _direct_projected_columns(TRADES_MODEL_PATH.read_text(encoding="utf-8")),
             TRADES_STAGING_PROJECTION,
         )
+
+    def test_trade_staging_casts_decimal_strings_at_sql_boundary(self):
+        trades_sql = TRADES_MODEL_PATH.read_text(encoding="utf-8")
+
+        self.assertEqual(_try_decimal_casts(trades_sql), TRADES_NUMERIC_CASTS)
 
     def test_snowpipe_final_raw_tables_cover_staging_inputs_and_load_metadata(self):
         snowpipe_sql = SNOWPIPE_SQL_PATH.read_text(encoding="utf-8")
