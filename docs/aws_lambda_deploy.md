@@ -298,6 +298,7 @@ The default Markets schedule payload is:
   "trade_fetch_mode": "incremental",
   "trade_first_run_lookback_hours": 24,
   "trade_watermark_overlap_seconds": 60,
+  "read_requests_per_second": 10,
   "event_query_file": "src/market_data_platform/queries/kalshi/markets_mlb_events.sql"
 }
 ```
@@ -307,6 +308,10 @@ If `kalshi_markets_market_ticker`, `kalshi_markets_event_ticker`, or
 Markets scope instead of the packaged query-file fallback. The query-file scope
 requires the `kalshi_markets_snowflake_*` settings because the Lambda runs the
 SQL in Snowflake before calling Kalshi for markets.
+The packaged query is bounded to the current Eastern MLB game day across
+`KXMLBTOTAL`, `KXMLBSPREAD`, and `KXMLBGAME`; keep
+`read_requests_per_second` below Kalshi's advertised read cap when broadening
+scope further.
 
 ## Updating The Function
 

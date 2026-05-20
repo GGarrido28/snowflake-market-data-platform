@@ -486,6 +486,20 @@ when crawled broadly.
   freshness have been validated.
 - The scheduled scope is bounded by one exact market ticker, one event ticker,
   or the packaged MLB event-query SQL file. It does not crawl every market.
+- The packaged MLB event query returns the current Eastern game-day slate for
+  `KXMLBTOTAL`, `KXMLBSPREAD`, and `KXMLBGAME`, not the five most recently
+  updated events. A full 15-game MLB day currently means about 15 event tickers
+  before the scraper fans out to market tickers.
+- API call volume is approximately one paginated market lookup per event plus
+  one orderbook request and one or more trade-page requests per market. Row
+  volume follows the same fan-out: one market row per market, one orderbook row
+  per market, and trade rows bounded by the configured trade fetch window.
+- Query-file scope fails the run if any event ticker's market lookup fails,
+  rather than landing a silent partial slate.
+- The markets Lambda defaults to `kalshi_markets_read_requests_per_second = 10`,
+  which caps client-side GET pacing below Kalshi's advertised ~20 requests/sec
+  read limit and leaves headroom for account-limit checks and retries. Lower
+  this before broadening beyond the packaged MLB scope.
 - Trade ingestion defaults to `incremental` with per-market watermark objects
   under `state/kalshi/market_trades/`.
 - First runs are bounded to the latest 24 hours by default.

@@ -79,13 +79,20 @@ class MarketsScraper(Scraper):
     ) -> list[dict]:
         '''Fetches markets for each event ticker and concatenates the results.'''
         all_markets: list[dict] = []
+        failed_event_tickers: list[str] = []
         for event_ticker in event_tickers:
             try:
                 markets_for_event = markets_client.get_target_markets(event_ticker=event_ticker)
                 logging.info("Fetched %s markets for event %s", len(markets_for_event), event_ticker)
                 all_markets.extend(markets_for_event)
             except Exception as e:
+                failed_event_tickers.append(event_ticker)
                 logging.warning("Failed to fetch markets for event %s: %s", event_ticker, e)
+        if failed_event_tickers:
+            raise RuntimeError(
+                "Failed to fetch markets for event ticker(s): "
+                + ", ".join(failed_event_tickers)
+            )
         return all_markets
 
     def run(self):

@@ -71,6 +71,7 @@ locals {
       trade_fetch_mode                = var.kalshi_market_trades_fetch_mode
       trade_first_run_lookback_hours  = var.kalshi_market_trades_first_run_lookback_hours
       trade_watermark_overlap_seconds = var.kalshi_market_trades_watermark_overlap_seconds
+      read_requests_per_second        = var.kalshi_markets_read_requests_per_second
     },
     var.kalshi_markets_market_ticker != null && var.kalshi_markets_market_ticker != "" ? { market_ticker = var.kalshi_markets_market_ticker } : {},
     var.kalshi_markets_event_ticker != null && var.kalshi_markets_event_ticker != "" ? { event_ticker = var.kalshi_markets_event_ticker } : {},
@@ -99,6 +100,7 @@ locals {
       trade_fetch_mode                = var.kalshi_market_trades_fetch_mode
       trade_first_run_lookback_hours  = var.kalshi_market_trades_first_run_lookback_hours
       trade_watermark_overlap_seconds = var.kalshi_market_trades_watermark_overlap_seconds
+      read_requests_per_second        = var.kalshi_markets_read_requests_per_second
     },
     var.kalshi_markets_market_ticker != null && var.kalshi_markets_market_ticker != "" ? { market_ticker = var.kalshi_markets_market_ticker } : {},
     var.kalshi_markets_event_ticker != null && var.kalshi_markets_event_ticker != "" ? { event_ticker = var.kalshi_markets_event_ticker } : {},

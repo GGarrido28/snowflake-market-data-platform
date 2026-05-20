@@ -84,6 +84,13 @@ class FakeNoTradeMarketsClient(FakeMarketsClient):
         return result
 
 
+class FakeFailingEventMarketsClient(FakeMarketsClient):
+    def get_target_markets(self, *, market_ticker=None, event_ticker=None):
+        if event_ticker == "EVT-2":
+            raise RuntimeError("temporary Kalshi error")
+        return super().get_target_markets(market_ticker=market_ticker, event_ticker=event_ticker)
+
+
 class FakeStateStore:
     def __init__(self, initial_state=None):
         self.initial_state = initial_state
@@ -171,6 +178,7 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
         self.assertEqual(trade_row["trade_id"], "trade-1")
         self.assertEqual(trade_row["ingested_at"], "2026-05-14T13:30:45Z")
         self.assertEqual(summary["trade_fetch_mode"], "incremental")
+        self.assertEqual(summary["read_requests_per_second"], 10)
         self.assertEqual(
             state_store.put_calls[0]["key"],
             "state/kalshi/market_trades/market_ticker=KXTEST/watermark.json",
@@ -210,6 +218,76 @@ class KalshiMarketsLandingPipelineTests(unittest.TestCase):
             ],
         )
         self.assertEqual(summary["row_counts"]["markets"], 2)
+        self.assertEqual(summary["read_requests_per_second"], 10)
+
+    def test_event_query_file_scope_fails_when_any_event_market_fetch_fails(self):
+        with self.assertRaisesRegex(RuntimeError, "EVT-2"):
+            markets_landing.run(
+                {
+                    "s3_bucket": "snowflake-landing",
+                    "event_query_file": "src/market_data_platform/queries/kalshi/markets_mlb_events.sql",
+                },
+                markets_client=FakeFailingEventMarketsClient(),
+                s3_writer=FakeS3Writer(),
+                state_store=FakeStateStore(),
+                event_ticker_loader=lambda query_file: ["EVT-1", "EVT-2"],
+                now=dt.datetime(2026, 5, 14, tzinfo=dt.timezone.utc),
+            )
+
+    @patch("market_data_platform.pipelines.kalshi.markets_landing.Markets")
+    def test_run_passes_configured_read_request_cap_to_default_markets_client(self, mock_markets_class):
+        mock_markets = mock_markets_class.return_value
+        mock_markets.get_target_markets.return_value = [
+            {
+                "ticker": "KXTEST",
+                "event_ticker": "EVT",
+                "market_type": "binary",
+            }
+        ]
+        mock_markets.get_market_details.return_value = {
+            "orderbook": [],
+            "trades": [],
+        }
+
+        summary = markets_landing.run(
+            {
+                "s3_bucket": "snowflake-landing",
+                "market_ticker": "KXTEST",
+                "read_requests_per_second": 8,
+            },
+            s3_writer=FakeS3Writer(),
+            state_store=FakeStateStore(),
+            now=dt.datetime(2026, 5, 14, tzinfo=dt.timezone.utc),
+        )
+
+        mock_markets_class.assert_called_once_with(read_limit_per_second=8)
+        self.assertEqual(summary["read_requests_per_second"], 8)
+
+    def test_run_rejects_nonpositive_read_request_cap(self):
+        with self.assertRaisesRegex(ValueError, "read_requests_per_second must be greater than zero"):
+            markets_landing.run(
+                {
+                    "s3_bucket": "snowflake-landing",
+                    "market_ticker": "KXTEST",
+                    "read_requests_per_second": 0,
+                },
+                markets_client=FakeMarketsClient(),
+                s3_writer=FakeS3Writer(),
+                state_store=FakeStateStore(),
+            )
+
+    def test_run_rejects_fractional_read_request_cap(self):
+        with self.assertRaisesRegex(ValueError, "read_requests_per_second must be a whole integer"):
+            markets_landing.run(
+                {
+                    "s3_bucket": "snowflake-landing",
+                    "market_ticker": "KXTEST",
+                    "read_requests_per_second": "8.5",
+                },
+                markets_client=FakeMarketsClient(),
+                s3_writer=FakeS3Writer(),
+                state_store=FakeStateStore(),
+            )
 
     def test_run_uses_env_bucket_prefixes_event_scope_and_trade_pagination(self):
         markets_client = FakeMarketsClient()

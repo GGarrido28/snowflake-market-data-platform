@@ -1,7 +1,7 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from market_data_platform.sources.kalshi.markets import Markets
 from market_data_platform.pipelines.kalshi.markets import MarketsScraper
@@ -266,6 +266,21 @@ class MarketsScraperTests(unittest.TestCase):
             "RAW_MARKETS",
             ["ticker"],
         )
+
+    @patch("market_data_platform.pipelines.base.SnowflakeManager")
+    def test_scraper_event_query_scope_fails_when_any_event_market_fetch_fails(
+        self,
+        _mock_snowflake_manager,
+    ):
+        markets_client = Mock()
+        markets_client.get_target_markets.side_effect = [
+            [{"ticker": "EVT-1-MKT-A"}],
+            RuntimeError("temporary Kalshi error"),
+        ]
+        scraper = MarketsScraper()
+
+        with self.assertRaisesRegex(RuntimeError, "EVT-2"):
+            scraper._fetch_markets_for_event_list(markets_client, ["EVT-1", "EVT-2"])
 
     @patch("market_data_platform.pipelines.base.SnowflakeManager")
     def test_scraper_rejects_setting_more_than_one_scope_var(self, _mock_snowflake_manager):
