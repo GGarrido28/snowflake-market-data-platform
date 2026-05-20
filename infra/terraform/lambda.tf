@@ -117,6 +117,7 @@ resource "aws_lambda_function" "kalshi_markets" {
         KALSHI_MARKET_TRADES_FETCH_MODE                = var.kalshi_market_trades_fetch_mode
         KALSHI_MARKET_TRADES_FIRST_RUN_LOOKBACK_HOURS  = tostring(var.kalshi_market_trades_first_run_lookback_hours)
         KALSHI_MARKET_TRADES_WATERMARK_OVERLAP_SECONDS = tostring(var.kalshi_market_trades_watermark_overlap_seconds)
+        KALSHI_MARKETS_READ_REQUESTS_PER_SECOND        = tostring(var.kalshi_markets_read_requests_per_second)
       },
       local.kalshi_secret_environment,
       local.kalshi_markets_scope_environment,

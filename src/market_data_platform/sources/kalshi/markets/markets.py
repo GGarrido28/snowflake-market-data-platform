@@ -9,8 +9,8 @@ DEFAULT_TRADES_PAGE_SIZE = 1000
 DETAIL_PROGRESS_EVERY = 100
 
 class Markets(KalshiBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, read_limit_per_second: int | None = None):
+        super().__init__(read_limit_per_second=read_limit_per_second)
         self.markets = []
         self.orderbook = []
         self.trades = []

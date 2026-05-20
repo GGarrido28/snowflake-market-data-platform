@@ -45,6 +45,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             "kalshi_market_trades_fetch_mode",
             "kalshi_market_trades_first_run_lookback_hours",
             "kalshi_market_trades_watermark_overlap_seconds",
+            "kalshi_markets_read_requests_per_second",
             "kalshi_markets_reserved_concurrency",
             "kalshi_markets_snowflake_account",
             "kalshi_markets_snowflake_user",
@@ -58,6 +59,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
 
         self.assertIn("Set at most one of kalshi_markets_market_ticker", variables)
         self.assertIn("kalshi_markets_event_query_file requires", variables)
+        self.assertIn("kalshi_markets_read_requests_per_second must be a whole number between 1 and 20", variables)
         self.assertIn("kalshi_markets_reserved_concurrency must be null or at least 1", variables)
         self.assertRegex(tfvars_example, r'kalshi_markets_schedule_state\s*=\s*"ENABLED"')
         self.assertIn('default     = "cron(15,45 * * * ? *)"', variables)
@@ -68,6 +70,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("kalshi_markets_default_schedule_event_query_file", main)
         self.assertIn("src/market_data_platform/queries/kalshi/markets_mlb_events.sql", main)
         self.assertIn("trade_fetch_mode", main)
+        self.assertIn("read_requests_per_second", main)
         self.assertIn("SNOWFLAKE_ACCOUNT", main)
         self.assertIn("SNOWFLAKE_USER", main)
         self.assertIn("SNOWFLAKE_PRIVATE_KEY_SECRET_ARN", main)
@@ -92,6 +95,7 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("KALSHI_MARKET_TRADES_FETCH_MODE", terraform)
         self.assertIn("KALSHI_MARKET_TRADES_FIRST_RUN_LOOKBACK_HOURS", terraform)
         self.assertIn("KALSHI_MARKET_TRADES_WATERMARK_OVERLAP_SECONDS", terraform)
+        self.assertIn("KALSHI_MARKETS_READ_REQUESTS_PER_SECOND", terraform)
         self.assertIn("reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency", terraform)
         self.assertEqual(terraform.count("reserved_concurrent_executions = var.kalshi_markets_reserved_concurrency"), 1)
         self.assertGreater(

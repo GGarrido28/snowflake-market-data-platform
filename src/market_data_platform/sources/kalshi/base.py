@@ -17,12 +17,43 @@ PAGINATED_ENDPOINT_RESULT_KEYS = {
     "/portfolio/orders": "orders",
 }
 
+
+def _coerce_request_limit(value: int | float | str | None, *, name: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be a whole integer.")
+    if isinstance(value, int):
+        resolved = value
+    elif isinstance(value, float) and value.is_integer():
+        resolved = int(value)
+    elif isinstance(value, str) and value.strip().isdigit():
+        resolved = int(value.strip())
+    else:
+        raise ValueError(f"{name} must be a whole integer.")
+    if resolved <= 0:
+        raise ValueError(f"{name} must be greater than zero.")
+    return resolved
+
+
 class KalshiBase:
     '''Base class for Kalshi API interactions. Handles authentication and request signing.'''
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        read_limit_per_second: int | None = None,
+        write_limit_per_second: int | None = None,
+    ):
         self.base_url = 'https://api.elections.kalshi.com/trade-api/v2' # Base URL for Kalshi API, despite the elections subdomain, this is the correct endpoint for all API interactions.
         self.headers = self._get_auth_headers("GET", "/") # Initial headers, will be updated for each request
-        self.api_limits = {"read_limit": 20, "write_limit": 20}
+        self.api_limit_caps = {
+            "read_limit": _coerce_request_limit(read_limit_per_second, name="read_limit_per_second"),
+            "write_limit": _coerce_request_limit(write_limit_per_second, name="write_limit_per_second"),
+        }
+        self.api_limits = {
+            "read_limit": self._effective_api_limit("read_limit", 20),
+            "write_limit": self._effective_api_limit("write_limit", 20),
+        }
         self.rate_limit_window_start = datetime.datetime.now()
         self.request_counts = {"GET": 0, "POST": 0}
 
@@ -48,12 +79,21 @@ class KalshiBase:
         }
         return headers
     
+    def _effective_api_limit(self, limit_key: str, advertised_limit: int) -> int:
+        cap = self.api_limit_caps.get(limit_key)
+        if cap is None:
+            return advertised_limit
+        return min(advertised_limit, cap)
+
     def _get_api_limits(self) -> dict:
         '''Fetches the current API rate limits for the authenticated user.'''
         response = self.make_request("GET", "/account/limits")
         read_limit = response.json().get("read_limit", 20)
         write_limit = response.json().get("write_limit", 20)
-        self.api_limits = {"read_limit": read_limit, "write_limit": write_limit}
+        self.api_limits = {
+            "read_limit": self._effective_api_limit("read_limit", read_limit),
+            "write_limit": self._effective_api_limit("write_limit", write_limit),
+        }
         return self.api_limits
 
     def _wait_for_rate_limit(self, method: str) -> None:

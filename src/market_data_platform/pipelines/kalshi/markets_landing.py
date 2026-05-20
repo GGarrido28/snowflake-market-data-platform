@@ -25,6 +25,7 @@ DEFAULT_MARKET_TRADES_S3_PREFIX = "raw/kalshi/market_trades"
 DEFAULT_MARKET_TRADES_STATE_PREFIX = "state/kalshi/market_trades"
 DEFAULT_TRADE_FIRST_RUN_LOOKBACK_HOURS = 24
 DEFAULT_TRADE_WATERMARK_OVERLAP_SECONDS = 60
+DEFAULT_READ_REQUESTS_PER_SECOND = 10
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
@@ -155,6 +156,38 @@ def _coerce_nonnegative_int(value: Any, *, name: str, default: int) -> int:
     if resolved < 0:
         raise ValueError(f"{name} must be greater than or equal to zero.")
     return resolved
+
+
+def _coerce_positive_int(value: Any, *, name: str, default: int) -> int:
+    if value in (None, ""):
+        return default
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be a whole integer.")
+    if isinstance(value, int):
+        resolved = value
+    elif isinstance(value, float) and value.is_integer():
+        resolved = int(value)
+    elif isinstance(value, str) and value.strip().isdigit():
+        resolved = int(value.strip())
+    else:
+        raise ValueError(f"{name} must be a whole integer.")
+    if resolved <= 0:
+        raise ValueError(f"{name} must be greater than zero.")
+    return resolved
+
+
+def _resolve_read_requests_per_second(event: dict[str, Any]) -> int:
+    return _coerce_positive_int(
+        _event_value_or_env(
+            event,
+            "read_requests_per_second",
+            "market_detail_read_requests_per_second",
+            "markets_read_requests_per_second",
+            env_var="KALSHI_MARKETS_READ_REQUESTS_PER_SECOND",
+        ),
+        name="read_requests_per_second",
+        default=DEFAULT_READ_REQUESTS_PER_SECOND,
+    )
 
 
 def _coerce_epoch_seconds(value: Any, *, name: str) -> int | None:
@@ -504,13 +537,20 @@ def _fetch_markets_for_event_list(
     event_tickers: list[str],
 ) -> list[dict[str, Any]]:
     all_markets: list[dict[str, Any]] = []
+    failed_event_tickers: list[str] = []
     for event_ticker in event_tickers:
         try:
             markets_for_event = markets_client.get_target_markets(event_ticker=event_ticker)
             logging.info("Fetched %s markets for event %s.", len(markets_for_event), event_ticker)
             all_markets.extend(markets_for_event)
         except Exception as e:
+            failed_event_tickers.append(event_ticker)
             logging.warning("Failed to fetch markets for event %s: %s", event_ticker, e)
+    if failed_event_tickers:
+        raise RuntimeError(
+            "Failed to fetch markets for event ticker(s): "
+            + ", ".join(failed_event_tickers)
+        )
     return all_markets
 
 
@@ -579,8 +619,9 @@ def run(
     )
     market_ticker, event_ticker, event_query_file = _resolve_scope(event)
     trade_fetch_config = _resolve_trade_fetch_config(event, bucket=bucket, run_started_at=run_started_at)
+    read_requests_per_second = _resolve_read_requests_per_second(event)
 
-    markets_client = markets_client or Markets()
+    markets_client = markets_client or Markets(read_limit_per_second=read_requests_per_second)
     s3_writer = s3_writer or S3JsonLinesWriter()
     state_store = state_store or S3JsonStore()
 
@@ -597,9 +638,10 @@ def run(
         market_rows = markets_client.get_target_markets(event_ticker=event_ticker)
 
     logging.info(
-        "Fetching orderbooks and trades for %s market(s); trade_fetch_mode=%s.",
+        "Fetching orderbooks and trades for %s market(s); trade_fetch_mode=%s; read_request_cap=%s/sec.",
         len(market_rows),
         trade_fetch_config.mode,
+        read_requests_per_second,
     )
     tickers = _market_tickers(market_rows)
     trade_watermark_states = _load_trade_watermark_states(
@@ -687,6 +729,7 @@ def run(
         "paginate_trades": trade_fetch_config.paginate_trades,
         "trade_fetch_mode": trade_fetch_config.mode,
         "trade_fetch_window_count": len(trade_fetch_options_by_ticker),
+        "read_requests_per_second": read_requests_per_second,
         "trade_watermark": {
             "state_bucket": trade_fetch_config.state_bucket,
             "state_prefix": trade_fetch_config.state_prefix,

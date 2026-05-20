@@ -380,6 +380,21 @@ variable "kalshi_market_trades_watermark_overlap_seconds" {
   }
 }
 
+variable "kalshi_markets_read_requests_per_second" {
+  description = "Conservative client-side GET request cap for the Kalshi markets Lambda. Keep below Kalshi's advertised read limit to leave headroom for account-limit checks and retries."
+  type        = number
+  default     = 10
+
+  validation {
+    condition = (
+      var.kalshi_markets_read_requests_per_second == floor(var.kalshi_markets_read_requests_per_second)
+      && var.kalshi_markets_read_requests_per_second > 0
+      && var.kalshi_markets_read_requests_per_second <= 20
+    )
+    error_message = "kalshi_markets_read_requests_per_second must be a whole number between 1 and 20."
+  }
+}
+
 variable "kalshi_markets_reserved_concurrency" {
   description = "Optional reserved concurrency for the Kalshi markets Lambda. Leave null to avoid consuming account-level reserved concurrency; set to 1 or higher only when the AWS account has enough unreserved concurrency headroom."
   type        = number

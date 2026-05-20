@@ -2,11 +2,79 @@ import unittest
 from unittest.mock import patch
 
 from market_data_platform.pipelines.base import Scraper
+from market_data_platform.sources.kalshi.base import KalshiBase
 
 
 class DummyScraper(Scraper):
     def run(self):
         pass
+
+
+class FakeResponse:
+    status_code = 200
+    text = ""
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def json(self):
+        return self.payload
+
+
+class KalshiBaseRateLimitTests(unittest.TestCase):
+    def test_configured_read_limit_caps_advertised_api_limit(self):
+        with patch.object(KalshiBase, "_get_auth_headers", return_value={}):
+            client = KalshiBase(read_limit_per_second=8)
+
+            with patch.object(
+                client,
+                "_send_request",
+                return_value=FakeResponse({"read_limit": 20, "write_limit": 20}),
+            ):
+                limits = client._get_api_limits()
+
+        self.assertEqual(limits["read_limit"], 8)
+        self.assertEqual(limits["write_limit"], 20)
+
+    def test_configured_read_limit_rejects_fractional_values(self):
+        with patch.object(KalshiBase, "_get_auth_headers", return_value={}):
+            with self.assertRaisesRegex(ValueError, "read_limit_per_second must be a whole integer"):
+                KalshiBase(read_limit_per_second=8.5)
+
+    def test_configured_read_limit_allows_whole_number_strings(self):
+        with patch.object(KalshiBase, "_get_auth_headers", return_value={}):
+            client = KalshiBase(read_limit_per_second="8")
+
+        self.assertEqual(client.api_limits["read_limit"], 8)
+
+    def test_configured_read_limit_uses_advertised_limit_when_lower_than_cap(self):
+        with patch.object(KalshiBase, "_get_auth_headers", return_value={}):
+            client = KalshiBase(read_limit_per_second=20)
+
+            with patch.object(
+                client,
+                "_send_request",
+                return_value=FakeResponse({"read_limit": 12, "write_limit": 20}),
+            ):
+                limits = client._get_api_limits()
+
+        self.assertEqual(limits["read_limit"], 12)
+
+    def test_configured_read_limit_rejects_nonpositive_values(self):
+        with patch.object(KalshiBase, "_get_auth_headers", return_value={}):
+            with self.assertRaisesRegex(
+                ValueError,
+                "read_limit_per_second must be greater than zero",
+            ):
+                KalshiBase(read_limit_per_second=0)
+
+    def test_configured_read_limit_rejects_noninteger_strings(self):
+        with patch.object(KalshiBase, "_get_auth_headers", return_value={}):
+            with self.assertRaisesRegex(
+                ValueError,
+                "read_limit_per_second must be a whole integer",
+            ):
+                KalshiBase(read_limit_per_second="8.5")
 
 
 class ScraperStorageTests(unittest.TestCase):
