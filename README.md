@@ -12,7 +12,7 @@ A data pipeline that ingests Kalshi MLB prediction market data into Snowflake an
 - `dbt`: Local dbt project for Snowflake transformations and analytics models.
 - `analysis`: Jupyter notebooks for EDA and visualizations. See [`analysis/README.md`](./analysis/README.md).
 - `ai`: Public AI-facing artifacts, including a display copy of the Codex skill used for repo change workflows.
-- `docs`: Lightweight project documentation, including a Kalshi entity map and join-key cheat sheet.
+- `docs`: Lightweight project documentation, including a Kalshi entity map, join-key cheat sheet, and [Snowflake billing pause runbook](./docs/snowflake_billing_pause.md).
 - `README.md`: This file, providing an overview of the project and its purpose.
 
 # Tech Stack
