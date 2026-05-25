@@ -2,6 +2,10 @@
 
 A data pipeline that ingests Kalshi MLB prediction market data into Snowflake and transforms it with dbt. The output answers a specific question: across MLB market types (totals, spreads, moneylines), how does price drift between market-open and market-close differ, and how does liquidity, measured by trade volume and orderbook depth, correlate with that drift? Stack: Python, Snowflake, dbt.
 
+# Featured Analysis
+
+- [MLB Game Repricing Analysis](./analysis/02_mlb_game_repricing_analysis/README.md): public writeup answering whether pregame `KXMLBGAME` pricing differs meaningfully from live pricing for the May 20, 2026 MLB slate.
+
 # Project Structure
 - `src/market_data_platform`: Main Python package for sources, ingestion pipelines, Snowflake loading, configuration, and orchestration.
 - `src/market_data_platform/sources`: Source-specific API client code, currently Kalshi with MLB scaffolding ready for the next source.
