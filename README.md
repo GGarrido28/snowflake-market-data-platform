@@ -1,195 +1,82 @@
 # Kalshi Market Data Platform
 
-A data pipeline that ingests Kalshi MLB prediction market data into Snowflake and transforms it with dbt. The output answers a specific question: across MLB market types (totals, spreads, moneylines), how does price drift between market-open and market-close differ, and how does liquidity, measured by trade volume and orderbook depth, correlate with that drift? Stack: Python, Snowflake, dbt.
+Ingests Kalshi MLB prediction market data into Snowflake via scheduled AWS Lambda pipelines, transforms it with dbt, and analyzes it through notebook-driven writeups.
 
-# Featured Analysis
+> Across MLB market types, how does price drift differ between pregame and live trading, and how does liquidity relate to that drift?
+
+## Featured Analysis
 
 - [MLB Game Repricing Analysis](./analysis/02_mlb_game_repricing_analysis/README.md): public writeup answering whether pregame `KXMLBGAME` pricing differs meaningfully from live pricing for the May 20, 2026 MLB slate.
 
-# Project Structure
-- `src/market_data_platform`: Main Python package for sources, ingestion pipelines, Snowflake loading, configuration, and orchestration.
-- `src/market_data_platform/sources`: Source-specific API client code, currently Kalshi with MLB scaffolding ready for the next source.
-- `src/market_data_platform/pipelines`: Source-specific ingestion workflows that load raw Snowflake tables or Snowflake-ready S3 landing files.
-- `src/market_data_platform/warehouse`: Snowflake connection, S3 landing, and loading utilities.
-- `aws/lambdas`: Thin AWS Lambda handlers that dispatch into shared package pipeline code.
-- `infra/terraform`: AWS infrastructure for the Lambda deployment path.
-- `dbt`: Local dbt project for Snowflake transformations and analytics models.
-- `analysis`: Jupyter notebooks for EDA and visualizations. See [`analysis/README.md`](./analysis/README.md).
-- `ai`: Public AI-facing artifacts, including a display copy of the Codex skill used for repo change workflows.
-- `docs`: Lightweight project documentation, including a Kalshi entity map, join-key cheat sheet, and [Snowflake billing pause runbook](./docs/snowflake_billing_pause.md).
-- `README.md`: This file, providing an overview of the project and its purpose.
+## Architecture
 
-# Tech Stack
-The lead covers the core stack (Python, Snowflake, dbt). Additional tooling:
-- **Data Analysis**: Jupyter Notebooks
-- **LLMs**: Cursor, Claude Code, Copilot
-
-# Kalshi Glossary
-## As defined by Kalshi
-For those unfamiliar with Kalshi's terminology, this section provides definitions based on https://docs.kalshi.com/getting_started/terms
-
-**Market**: A single binary market. This is a low level object which rarely will need to be exposed on its own to members. The usage of the term “market” here is consistent with how it’s used in the backend and API.
-**Event**: An event is a collection of markets and the basic unit that members should interact with on Kalshi.
-**Series**: A series is a collection of related events. The following should hold true for events that make up a series:
-* Each event should look at similar data for determination, but translated over another, disjoint time period.
-* Series should never have a logical outcome dependency between events.
-* Events in a series should have the same ticker prefix.
-
-## Additions and Clarifications
-
-**Order Book**: The order book displays all the resting orders available on the market. It displays the quantity of resting orders available as well as their corresponding prices. A resting order is an offer to purchase contracts at a certain price that is not matched immediately.
-
-**Pricing Mechanics**: If you are new to prediction markets and find yourself wondering things like "why would anyone buy NO if NO pays $0?" or "are prices in cents or dollars?", read the [`docs/kalshi_pricing_primer.md`](./docs/kalshi_pricing_primer.md) walkthrough before digging into the data. It covers how YES/NO contracts work, why prices sum to $1, what the `_fp` vs `_dollars` column suffixes mean, and how to compute the dollar value of any trade row.
-
-## Examples of Terms
-**Market**: Will the S&P 500 close above 4000 on December 31, 2024?
-
-# dbt Setup
-This repo now includes a starter dbt project in [`dbt`](./dbt) for modeling Kalshi data in Snowflake.
-
-## 1. Install dbt for Snowflake
-Use the same virtual environment you use for this repo, then install:
-
-```bash
-pip install dbt-core dbt-snowflake
+```text
+Kalshi API + MLB Stats API
+        |
+        v
+Python ingestion package
+        |
+        v
+EventBridge Scheduler (cron)
+        |
+        v
+AWS Lambda container jobs
+        |
+        v
+S3 JSONL landing files
+        |
+        v
+Snowpipe + Snowflake RAW tables
+        |
+        v
+dbt staging and mart models
+        |
+        v
+Jupyter notebook analysis
 ```
 
-## 2. Configure your dbt profile
-Copy [`dbt/profiles.yml.example`](./dbt/profiles.yml.example) to `dbt/profiles.yml` and set the environment variables it references.
+The same Python package supports local ingestion and AWS-deployed Lambda entrypoints. The deployed path uses Terraform-managed AWS infrastructure, S3 landing prefixes, Snowpipe ingestion, Snowflake warehouse tables, and dbt transformations before the analysis layer reads from marts.
 
-This project uses a single root `.env` file for shared Snowflake/dbt configuration.
+Kalshi organizes data as `series -> events -> markets -> trades`. See the [Kalshi entity map](./docs/kalshi_entity_map.md) for join keys and the [pricing primer](./docs/kalshi_pricing_primer.md) for YES/NO contract mechanics.
 
-At minimum, dbt expects:
+## Stack
 
-```bash
-SNOWFLAKE_ACCOUNT=...
-SNOWFLAKE_USER=...
-SNOWFLAKE_PRIVATE_KEY_PATH=...
-SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=
-SNOWFLAKE_ROLE=...
-SNOWFLAKE_WAREHOUSE=...
-DBT_DATABASE=PROD
-DBT_SCHEMA=STAGE
-DBT_SOURCE_DATABASE=PROD
-DBT_SOURCE_SCHEMA=RAW
-```
+- **Ingestion:** Python, Kalshi API, MLB Stats API
+- **Cloud:** AWS Lambda, ECR, EventBridge Scheduler, S3, Secrets Manager
+- **Warehouse:** Snowflake, Snowpipe
+- **Transformations:** dbt
+- **Analysis:** Jupyter, pandas, matplotlib
+- **CI:** GitHub Actions for Python unittest and dbt parse; Dependabot for pip and Actions updates
+- **Infrastructure:** Terraform
 
-The `SNOWFLAKE_*` settings match the Python connection code in `market_data_platform.config.settings`. Snowflake requires key-pair auth here because account-wide MFA enforcement blocks password logins for human users; generate an RSA keypair, register the public key on your Snowflake user with `ALTER USER <you> SET RSA_PUBLIC_KEY='...'`, and point `SNOWFLAKE_PRIVATE_KEY_PATH` at the `.p8` private key file. Leave `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` blank if the key is unencrypted.
+## Repository Map
 
-## Markets Scraper Scope
-The markets scraper is intentionally scoped now so it does not try to crawl every Kalshi market.
-Set exactly one of these in your root `.env` before running the market scraper:
+| Path | Purpose |
+| --- | --- |
+| [`src/market_data_platform`](./src/market_data_platform) | Python package for source clients, ingestion workflows, warehouse loading, and orchestration. |
+| [`aws/lambdas`](./aws/lambdas) | Thin Lambda handlers that dispatch into shared package pipeline code. |
+| [`infra/terraform`](./infra/terraform) | AWS infrastructure for Lambda, S3, EventBridge, IAM, and deployment support. |
+| [`infra/snowflake`](./infra/snowflake) | Snowflake/Snowpipe setup SQL. |
+| [`dbt`](./dbt) | Snowflake staging, intermediate, and mart models. |
+| [`analysis`](./analysis/README.md) | Notebook analyses and public writeups. |
+| [`docs`](./docs) | Setup, runbooks, entity maps, and operational notes. |
 
-```bash
-KALSHI_EVENT_TICKER=KXMLBTOTAL-26APR111310MIADET
-```
+## Key Documentation
 
-or
+| Document | Use |
+| --- | --- |
+| [Setup and operations](./docs/setup_and_operations.md) | Local setup, dbt configuration, scraper scopes, credentials, and Lambda landing notes. |
+| [Analysis index](./analysis/README.md) | Notebook layout, cache pattern, and analysis writeups. |
+| [Kalshi pricing primer](./docs/kalshi_pricing_primer.md) | Explanation of YES/NO pricing, payout mechanics, and `_fp` vs `_dollars` fields. |
+| [Kalshi entity map](./docs/kalshi_entity_map.md) | Join keys and raw/staging table mental model. |
+| [AWS Lambda deployment](./docs/aws_lambda_deploy.md) | Container-image Lambda deployment path. |
+| [Kalshi markets Snowpipe runbook](./docs/kalshi_markets_snowpipe.md) | S3/Snowpipe path for Kalshi market entities. |
+| [Snowflake billing pause runbook](./docs/snowflake_billing_pause.md) | Cost-control procedure for pausing Snowpipe/tasks. |
+| [PR conventions](./docs/pr-conventions.md) | Branch naming, PR title, and label conventions. |
+| [AI workflow docs](./ai/README.md) | Public display copy of the Codex workflow skill used for repo changes. |
 
-```bash
-KALSHI_MARKET_TICKER=KXMLBTOTAL-26APR111310MIADET-14
-```
+## Current Analytical Scope
 
-To backfill markets for multiple events at once, point at a SQL file (absolute path, or relative to the repo root) whose result set returns an `event_ticker` column — one row per event to scrape:
+The current public analysis focuses on MLB Kalshi markets, especially `KXMLBGAME` winner contracts. The broader warehouse also supports totals, spreads, market trades, orderbook snapshots, Kalshi event metadata, and MLB team reference data.
 
-```bash
-KALSHI_MARKETS_EVENT_QUERY_FILE=src/market_data_platform/queries/kalshi/markets_mlb_events.sql
-```
-
-The scraper runs the query against Snowflake, then fetches markets + orderbooks + trades for each returned event ticker. The packaged MLB query stays bounded to the current Eastern game day for `KXMLBTOTAL`, `KXMLBSPREAD`, and `KXMLBGAME`; on a 15-game MLB slate, expect roughly 15 event tickers before market fan-out. Markets scraping is expensive because orderbook and trades are called per market, so keep custom query files date-bounded and set `KALSHI_MARKETS_READ_REQUESTS_PER_SECOND` below Kalshi's advertised read cap if you broaden scope. The three scope env vars are mutually exclusive - set at most one.
-
-## Kalshi API Credentials
-Local scraper runs can use `KALSHI_API_KEY_ID` plus `KALSHI_API_KEY`, where `KALSHI_API_KEY` points at the local RSA private key PEM file. AWS-deployed ingestion should use AWS Secrets Manager instead by setting `KALSHI_SECRET_ARN` or `KALSHI_SECRET_NAME`.
-
-Setup instructions and the expected secret JSON shape live in [`docs/kalshi_secrets_manager.md`](./docs/kalshi_secrets_manager.md).
-
-## Events Scraper Status
-The events scraper defaults to open events only. To include non-open or historical events in `RAW_EVENTS`, set:
-
-```bash
-KALSHI_EVENTS_STATUS=all
-```
-
-If you want a specific status instead, set it directly, for example:
-
-```bash
-KALSHI_EVENTS_STATUS=open
-```
-
-To backfill a single event or a single series without crawling all historical events, scope the scraper with one of:
-
-```bash
-KALSHI_EVENTS_EVENT_TICKER=KXMASTERS-25
-```
-
-or
-
-```bash
-KALSHI_EVENTS_SERIES_TICKER=KXMASTERS
-```
-
-To backfill multiple series at once, point at a SQL file (absolute path, or relative to the repo root) whose result set returns a `ticker` column — one row per series to scrape:
-
-```bash
-KALSHI_EVENTS_SERIES_QUERY_FILE=src/market_data_platform/queries/kalshi/events_mlb_series.sql
-```
-
-The scraper runs the query against Snowflake, then fetches Kalshi events for each returned series ticker. The three scope env vars are mutually exclusive — set at most one.
-
-## Python Scraper CLI
-Install the package in editable mode, then run the orchestration CLI:
-
-```bash
-pip install -e .
-market-data market --event-ticker KXMLBTOTAL-26APR111310MIADET
-market-data events --series-ticker KXMLBTOTAL
-market-data series --ticker KXMLBTOTAL
-```
-
-## MLB Teams Lambda S3 Landing
-The first AWS-oriented MLB pipeline fetches public MLB team metadata and lands newline-delimited JSON in the S3 bucket used for Snowflake ingestion.
-
-Configure the target bucket with either a source-specific env var or a shared Snowflake landing var:
-
-```bash
-MLB_TEAMS_S3_BUCKET=snowflake-kalshi-project
-MLB_TEAMS_S3_PREFIX=raw/mlb/teams
-```
-
-`SNOWFLAKE_S3_BUCKET` and `SNOWFLAKE_S3_PREFIX` are also supported fallbacks. S3 folders are object key prefixes, so the pipeline can write under `raw/mlb/teams/...` even if only `raw/mlb` is visible before the first run. The Lambda entrypoint is [`aws/lambdas/mlb_teams/handler.py`](./aws/lambdas/mlb_teams/handler.py), which calls `market_data_platform.pipelines.mlb.teams_pipeline.run(event)`.
-
-Deployment instructions live in [`docs/aws_lambda_deploy.md`](./docs/aws_lambda_deploy.md). The EventBridge schedule is intentionally disabled by default because MLB teams is low-change dimension data; Snowpipe setup and the manual refresh runbook live in [`docs/mlb_teams_snowpipe.md`](./docs/mlb_teams_snowpipe.md).
-
-## 3. Run dbt locally
-From the repo root, first load the root `.env` into your PowerShell session:
-
-```bash
-. .\scripts\load_dbt_env.ps1
-```
-
-Then run:
-
-```bash
-dbt debug --project-dir dbt --profiles-dir dbt
-dbt run --project-dir dbt --profiles-dir dbt
-dbt test --project-dir dbt --profiles-dir dbt
-dbt docs generate --project-dir dbt --profiles-dir dbt
-```
-
-## 4. Starter model layout
-The scaffold assumes you land raw Kalshi tables in Snowflake with the current Python scraper and then transform them in dbt:
-
-- `source('kalshi_raw', 'markets')` -> `stg_kalshi_markets`
-- `source('kalshi_raw', 'market_orderbooks')` -> `stg_kalshi_market_orderbooks`
-- `source('kalshi_raw', 'market_trades')` -> `stg_kalshi_market_trades`
-- `int_kalshi_markets` gives you a clean starting relation for downstream marts
-- `source('mlb_raw', 'teams')` -> `stg_mlb_teams` -> `dim_mlb_teams`
-
-If your physical raw table names or schema differ, update [`dbt/models/sources.yml`](./dbt/models/sources.yml).
-
-## Entity Map
-If you need a quick reminder of how Kalshi objects connect, see [`docs/kalshi_entity_map.md`](./docs/kalshi_entity_map.md).
-
-## AI Workflow Docs
-For the public display copy of the Codex workflow skill, see [`ai/`](./ai).
-For repo PR naming and labeling conventions, see [`docs/pr-conventions.md`](./docs/pr-conventions.md).
+Future analysis can extend the current market-only work by adding external MLB game-state data, such as play-by-play events and independent win-probability models.
