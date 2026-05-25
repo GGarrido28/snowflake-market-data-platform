@@ -13,7 +13,11 @@ Streamlit and friends are on the post-MVP roadmap — once the notebook-based an
 ```
 analysis/
 ├── README.md                              <- this file
-├── 01_single_market_drift_walkthrough.ipynb
+├── 01_single_market_drift_walkthrough/      <- one folder per notebook, named with the same slug as the notebook itself
+├──├── 01_single_market_drift_walkthrough.ipynb
+├── 02_mlb_game_repricing_analysis/
+├──├── 02_mlb_game_repricing_analysis.ipynb
+├──├── README.md                              <- analysis and findings from this notebook
 ├── 02_...                                  (future)
 └── data/                                   <- gitignored; per-notebook parquet cache
 ```
@@ -42,3 +46,8 @@ jupyter lab
 ```
 
 To pull fresh data, also have a `.env` configured with the same `SNOWFLAKE_*` vars the dbt and Python ingest paths already use (see the root README for setup). If you've just scraped new markets, run `dbt run` first so the marts pick up the new rows — the notebooks read from `fct_*` and `stg_*`, not from `RAW`.
+
+
+## Analysis & Findings
+
+There is a separate folder under `analysis/` for each notebook, named with the same slug as the notebook itself. Each of those folders contains a `README.md` with the analysis and findings from that notebook's exploration. See `01_single_market_drift_walkthrough.ipynb` for the first one.
