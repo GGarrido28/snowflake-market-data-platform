@@ -1,6 +1,6 @@
 # Kalshi Market Data Platform
 
-A data engineering and analysis project for Kalshi MLB prediction markets. The project ingests Kalshi market data, lands it in Snowflake, models it with dbt, and uses notebook analyses to answer:
+Ingests Kalshi MLB prediction market data into Snowflake via scheduled AWS Lambda pipelines, transforms it with dbt, and analyzes it through notebook-driven writeups.
 
 > Across MLB market types, how does price drift differ between pregame and live trading, and how does liquidity relate to that drift?
 
@@ -15,6 +15,9 @@ Kalshi API + MLB Stats API
         |
         v
 Python ingestion package
+        |
+        v
+EventBridge Scheduler (cron)
         |
         v
 AWS Lambda container jobs
@@ -34,6 +37,8 @@ Jupyter notebook analysis
 
 The same Python package supports local ingestion and AWS-deployed Lambda entrypoints. The deployed path uses Terraform-managed AWS infrastructure, S3 landing prefixes, Snowpipe ingestion, Snowflake warehouse tables, and dbt transformations before the analysis layer reads from marts.
 
+Kalshi organizes data as `series -> events -> markets -> trades`. See the [Kalshi entity map](./docs/kalshi_entity_map.md) for join keys and the [pricing primer](./docs/kalshi_pricing_primer.md) for YES/NO contract mechanics.
+
 ## Stack
 
 - **Ingestion:** Python, Kalshi API, MLB Stats API
@@ -41,6 +46,7 @@ The same Python package supports local ingestion and AWS-deployed Lambda entrypo
 - **Warehouse:** Snowflake, Snowpipe
 - **Transformations:** dbt
 - **Analysis:** Jupyter, pandas, matplotlib
+- **CI:** GitHub Actions for Python unittest and dbt parse; Dependabot for pip and Actions updates
 - **Infrastructure:** Terraform
 
 ## Repository Map
@@ -66,6 +72,8 @@ The same Python package supports local ingestion and AWS-deployed Lambda entrypo
 | [AWS Lambda deployment](./docs/aws_lambda_deploy.md) | Container-image Lambda deployment path. |
 | [Kalshi markets Snowpipe runbook](./docs/kalshi_markets_snowpipe.md) | S3/Snowpipe path for Kalshi market entities. |
 | [Snowflake billing pause runbook](./docs/snowflake_billing_pause.md) | Cost-control procedure for pausing Snowpipe/tasks. |
+| [PR conventions](./docs/pr-conventions.md) | Branch naming, PR title, and label conventions. |
+| [AI workflow docs](./ai/README.md) | Public display copy of the Codex workflow skill used for repo changes. |
 
 ## Current Analytical Scope
 

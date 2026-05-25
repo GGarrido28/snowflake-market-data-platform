@@ -2,6 +2,22 @@
 
 This guide keeps the operational details out of the root README while preserving the setup notes needed to run, scrape, transform, and deploy the project.
 
+## Kalshi Glossary
+
+Kalshi's API hierarchy is:
+
+```text
+series -> events -> markets -> trades
+```
+
+- **Series:** a collection of related events that share a ticker prefix.
+- **Event:** a dated or otherwise scoped instance within a series. This is usually the level users think about first.
+- **Market:** one binary YES/NO contract within an event.
+- **Trade:** one completed execution in a market.
+- **Orderbook:** the current bid ladder for a market, not a historical trade stream.
+
+See [`kalshi_entity_map.md`](./kalshi_entity_map.md) for warehouse join keys and [`kalshi_pricing_primer.md`](./kalshi_pricing_primer.md) for YES/NO pricing mechanics.
+
 ## Local dbt Setup
 
 This repo includes a dbt project in [`../dbt`](../dbt) for modeling Kalshi data in Snowflake.
