@@ -5,7 +5,6 @@ A data pipeline that ingests Kalshi MLB prediction market data into Snowflake an
 # Featured Analysis
 
 - [MLB Game Repricing Analysis](./analysis/02_mlb_game_repricing_analysis/README.md): public writeup answering whether pregame `KXMLBGAME` pricing differs meaningfully from live pricing for the May 20, 2026 MLB slate.
-- [Analysis index](./analysis/README.md): notebook layout, cache pattern, and links to individual analysis folders.
 
 # Project Structure
 - `src/market_data_platform`: Main Python package for sources, ingestion pipelines, Snowflake loading, configuration, and orchestration.

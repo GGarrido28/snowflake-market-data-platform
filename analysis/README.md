@@ -11,11 +11,9 @@ The analysis work is organized around the project question: across MLB market ty
 | [01 Single-Market Drift Walkthrough](01_single_market_drift_walkthrough/README.md) | Technical walkthrough | Establishes the data shape and drift primitives on one `KXMLBSPREAD` contract. |
 | [02 MLB Game Repricing Analysis](02_mlb_game_repricing_analysis/README.md) | Public findings writeup | Answers whether pregame `KXMLBGAME` pricing differs meaningfully from live pricing for the May 20, 2026 MLB slate. |
 
-## Why Notebooks
+## Notebook Rendering
 
-The Snowflake warehouse backing this project may be paused between active work periods. A live-query dashboard would go dark whenever the warehouse is cold, which is the wrong failure mode for a portfolio-facing analysis.
-
-Jupyter notebooks retain executed output in the `.ipynb` file itself, so a reader landing on GitHub can still inspect charts, dataframe previews, and narrative without live warehouse access. A dashboard remains a useful later step once the notebook-based analysis is stable.
+Jupyter notebooks retain rendered output in the `.ipynb` file, so GitHub readers can inspect the analysis without live Snowflake warehouse access.
 
 ## Layout
 

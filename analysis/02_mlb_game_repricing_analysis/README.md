@@ -146,3 +146,5 @@ The next layer of analysis should add external baseball context:
 - **Independent win-probability models** to evaluate whether Kalshi prices were efficient relative to game state, not just whether they eventually converged to the winner.
 
 That enrichment would move the analysis from "what did the market do?" to "was the market right, and when?"
+
+This analysis runs on data ingested by the project's AWS Lambda, S3, Snowpipe, Snowflake, and dbt pipeline. See the [project README](../../README.md) for architecture and setup details.
