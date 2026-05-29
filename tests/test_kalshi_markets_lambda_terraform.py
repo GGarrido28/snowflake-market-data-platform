@@ -71,7 +71,10 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
             "kalshi_markets_schedule_state",
         ):
             self.assertRegex(tfvars_example, rf'{name}\s*=\s*"DISABLED"')
-            self.assertRegex(variables, rf'variable "{name}" \{{[\s\S]*?default\s+=\s+"DISABLED"')
+            block_start = variables.index(f'variable "{name}"')
+            next_block_start = variables.find('\nvariable "', block_start + 1)
+            variable_block = variables[block_start:] if next_block_start == -1 else variables[block_start:next_block_start]
+            self.assertIn('default     = "DISABLED"', variable_block)
         self.assertIn('default     = "cron(15,45 * * * ? *)"', variables)
         self.assertRegex(tfvars_example, r'kalshi_markets_schedule_expression\s*=\s*"cron\(15,45 \* \* \* \? \*\)"')
         self.assertIn("KALSHI_MARKET_TICKER", main)
