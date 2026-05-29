@@ -33,14 +33,14 @@ mlb_teams_schedule_timezone   = "America/Chicago"
 mlb_teams_schedule_state      = "DISABLED"
 kalshi_events_schedule_expression = "cron(0 * * * ? *)"
 kalshi_events_schedule_timezone   = "America/Chicago"
-kalshi_events_schedule_state      = "ENABLED"
+kalshi_events_schedule_state      = "DISABLED"
 kalshi_series_schedule_expression = "cron(0 * * * ? *)"
 kalshi_series_schedule_timezone   = "America/Chicago"
-kalshi_series_schedule_state      = "ENABLED"
+kalshi_series_schedule_state      = "DISABLED"
 kalshi_markets_schedule_expression = "cron(15,45 * * * ? *)"
 kalshi_markets_schedule_timezone   = "America/Chicago"
 # Runs the SQL-driven Markets scope when no exact market or event binding is set.
-kalshi_markets_schedule_state      = "ENABLED"
+kalshi_markets_schedule_state      = "DISABLED"
 lambda_timeout_seconds = 60
 kalshi_markets_lambda_timeout_seconds = 300
 lambda_memory_mb       = 512

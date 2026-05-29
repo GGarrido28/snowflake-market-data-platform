@@ -65,7 +65,12 @@ class KalshiMarketsLambdaTerraformTests(unittest.TestCase):
         self.assertIn("kalshi_markets_lambda_timeout_seconds must be null or a whole number between 1 and 900", variables)
         self.assertIn('variable "kalshi_markets_lambda_timeout_seconds"', variables)
         self.assertIn("default     = 300", variables)
-        self.assertRegex(tfvars_example, r'kalshi_markets_schedule_state\s*=\s*"ENABLED"')
+        for name in (
+            "kalshi_events_schedule_state",
+            "kalshi_series_schedule_state",
+            "kalshi_markets_schedule_state",
+        ):
+            self.assertRegex(tfvars_example, rf'{name}\s*=\s*"DISABLED"')
         self.assertIn('default     = "cron(15,45 * * * ? *)"', variables)
         self.assertRegex(tfvars_example, r'kalshi_markets_schedule_expression\s*=\s*"cron\(15,45 \* \* \* \? \*\)"')
         self.assertIn("KALSHI_MARKET_TICKER", main)

@@ -181,9 +181,9 @@ variable "kalshi_events_schedule_timezone" {
 }
 
 variable "kalshi_events_schedule_state" {
-  description = "Whether the Kalshi events EventBridge Scheduler schedule is enabled."
+  description = "Whether the Kalshi events EventBridge Scheduler schedule is enabled. Defaults disabled so project automation stays suspended until explicitly resumed."
   type        = string
-  default     = "ENABLED"
+  default     = "DISABLED"
 
   validation {
     condition     = contains(["ENABLED", "DISABLED"], var.kalshi_events_schedule_state)
@@ -204,9 +204,9 @@ variable "kalshi_series_schedule_timezone" {
 }
 
 variable "kalshi_series_schedule_state" {
-  description = "Whether the Kalshi series EventBridge Scheduler schedule is enabled."
+  description = "Whether the Kalshi series EventBridge Scheduler schedule is enabled. Defaults disabled so project automation stays suspended until explicitly resumed."
   type        = string
-  default     = "ENABLED"
+  default     = "DISABLED"
 
   validation {
     condition     = contains(["ENABLED", "DISABLED"], var.kalshi_series_schedule_state)
@@ -227,9 +227,9 @@ variable "kalshi_markets_schedule_timezone" {
 }
 
 variable "kalshi_markets_schedule_state" {
-  description = "Whether the Kalshi markets EventBridge Scheduler schedule is enabled. The schedule defaults to the packaged MLB event-query SQL file when no exact market or event scope is configured."
+  description = "Whether the Kalshi markets EventBridge Scheduler schedule is enabled. Defaults disabled so project automation stays suspended until explicitly resumed. When enabled, the schedule defaults to the packaged MLB event-query SQL file unless an exact market or event scope is configured."
   type        = string
-  default     = "ENABLED"
+  default     = "DISABLED"
 
   validation {
     condition     = contains(["ENABLED", "DISABLED"], var.kalshi_markets_schedule_state)
